@@ -13,13 +13,10 @@ return new class extends Migration
     {
         Schema::create('attendance_corrections', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('attendance_records_id')->constrained()->onDelete('cascade');
-            $table->time('clock_in');
-            $table->time('clock_out');
-            $table->time('break_start_at');
-            $table->time('break_end_at');
+            $table->foreignId('attendance_record_id')->constrained()->onDelete('cascade');
+            $table->datetime('clock_in');
+            $table->datetime('clock_out');
             $table->string('notes');
-            $table->string('status');
             $table->timestamps();
         });
     }
