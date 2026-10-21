@@ -13,12 +13,14 @@ return new class extends Migration
     {
         Schema::create('attendance_records', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('users_id')->constrained()->onDelete('cascade');
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->date('date');
-            $table->time('clock_in');
-            $table->time('clock_out');
-            $table->integer('status');
+            $table->datetime('clock_in');
+            $table->datetime('clock_out')->nullable();
             $table->timestamps();
+
+            // 複合ユニークキー
+            $table->unique('user_id', 'date');
         });
     }
 
