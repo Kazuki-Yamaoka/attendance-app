@@ -18,5 +18,13 @@ class DatabaseSeeder extends Seeder
         //     'name' => 'Test User',
         //     'email' => 'test@example.com',
         // ]);
+
+        $this->call([
+            UserSeeder::class,
+            AttendanceRecordSeeder::class,
+            BreakTimeSeeder::class,
+            AttendanceCorrectionSeeder::class,
+            AttendanceCorrectionBreaktimeSeeder::class, // ※モデル名・シーダー名に合わせて調整
+        ]);
     }
 }
