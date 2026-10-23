@@ -12,18 +12,20 @@ class AttendanceCorrection extends Model
     use HasFactory;
 
     protected $fillable = [
-        'attendacne_record_id',
+        'attendance_record_id',
         'clock_in',
         'clock_out',
-        'break_start_at',
-        'break_end_at',
         'notes',
-        'status',
     ];
 
     public function attendance_record(): BelongsTo
     {
         return $this->belongsTo(AttendanceRecord::class);
+    }
+
+    public function attendance_correction_breaktimes(): HasMany
+    {
+        return $this->hasMany(AttendanceCorrectionBreaktime::class);
     }
 
     public function getApprovalStatusAttribute(): string

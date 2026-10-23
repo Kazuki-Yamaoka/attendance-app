@@ -12,8 +12,8 @@ class BreakTime extends Model
 
     protected $fillable = [
         'attendance_record_id',
-        'start_at',
-        'end_at',
+        'break_start_at',
+        'break_end_at',
     ];
 
     public function attendance_record(): BelongsTo

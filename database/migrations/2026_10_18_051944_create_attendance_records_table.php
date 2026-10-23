@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamps();
 
             // 複合ユニークキー
-            $table->unique('user_id', 'date');
+            $table->unique(['user_id', 'date']);
         });
     }
 
