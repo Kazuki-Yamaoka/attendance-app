@@ -12,11 +12,11 @@ class BreakTime extends Model
 
     protected $fillable = [
         'attendance_record_id',
-        'break_start_at',
-        'break_end_at',
+        'break_in',
+        'break_out',
     ];
 
-    public function attendance_record(): BelongsTo
+    public function AttendanceRecord(): BelongsTo
     {
         return $this->belongsTo(AttendanceRecord::class);
     }

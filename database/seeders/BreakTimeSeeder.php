@@ -22,8 +22,8 @@ class BreakTimeSeeder extends Seeder
             // 余分なデータを作らず、正確に該当する attendance_id と日付を紐付ける
             BreakTime::factory()->create([
                 'attendance_record_id' => $attendance->id,
-                'break_start_at' => $attendance->date . ' 12:00:00',
-                'break_end_at' => $attendance->date . ' 13:00:00',
+                'break_in' => $attendance->date . ' 12:00:00',
+                'break_out' => $attendance->date . ' 13:00:00',
             ]);
         }
     }

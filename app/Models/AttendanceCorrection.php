@@ -18,21 +18,13 @@ class AttendanceCorrection extends Model
         'notes',
     ];
 
-    public function attendance_record(): BelongsTo
+    public function AttendanceRecord(): BelongsTo
     {
         return $this->belongsTo(AttendanceRecord::class);
     }
 
-    public function attendance_correction_breaktimes(): HasMany
+    public function AttendanceCorrectionBreaktimes(): HasMany
     {
         return $this->hasMany(AttendanceCorrectionBreaktime::class);
-    }
-
-    public function getApprovalStatusAttribute(): string
-    {
-        return match ($this->approval) {
-            1 => '承認済み',
-            2 => '承認待ち',
-        };
     }
 }
