@@ -22,8 +22,8 @@ class AttendanceCorrectionBreaktimeFactory extends Factory
 
         return [
             'attendance_correction_id' => fake()->numberBetween(1, 3),
-            'break_start_at' => $date . ' 14:00:00',
-            'break_end_at' => $date . ' 15:00:00',
+            'break_in' => $date . ' 14:00:00',
+            'break_out' => $date . ' 15:00:00',
         ];
     }
 }

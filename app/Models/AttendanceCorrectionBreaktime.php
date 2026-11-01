@@ -11,11 +11,11 @@ class AttendanceCorrectionBreaktime extends Model
 
     protected $fillable = [
         'attendance_correction_id',
-        'break_start_at',
-        'break_end_at',
+        'break_in',
+        'break_out',
     ];
 
-    public function attendance_correction(): BelongsTo
+    public function AttendanceCorrection(): BelongsTo
     {
         return $this->belongsTo(AttendanceCorrection::class);
     }

@@ -22,8 +22,8 @@ class BreakTimeFactory extends Factory
 
         return [
             'attendance_record_id' => 1, // シーダー側で上書きするため仮の値を設定
-            'break_start_at' => now()->format('Y-m-d') . ' 12:00:00',
-            'break_end_at' => now()->format('Y-m-d') . ' 13:00:00',
+            'break_in' => now()->format('Y-m-d') . ' 12:00:00',
+            'break_out' => now()->format('Y-m-d') . ' 13:00:00',
         ];
     }
 }

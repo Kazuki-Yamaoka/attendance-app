@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use Illuminate\Support\Facades\Route;
@@ -22,9 +23,14 @@ Route::middleware('guest')->group(function () {
     Route::post('/login', [UserLoginController::class, 'store']);
 });
 
-// 仮ルート（Chapter 6で本実装に置き換え）
+// 仮ルート（Chapter 4で本実装に置き換え）
 Route::middleware('auth')->group(function () {
-    Route::get('/attendance', fn() => '勤怠登録（準備中）')->name('attendance.index');
+    Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
+    Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
+    Route::get('/attendance/list', [AttendanceController::class, 'list'])->name('attendance.list');
+    Route::get('/attendance/detail/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
+    Route::post('/attendance/detail/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
+
     Route::get('/stamp_correction_request/list', fn() => '申請一覧（準備中）')->name('request.index');
     Route::get('/attendance/report', fn() => '勤怠統計レポート（準備中）')->name('report.index');
 });

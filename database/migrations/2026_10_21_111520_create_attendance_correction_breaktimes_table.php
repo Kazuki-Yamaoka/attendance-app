@@ -14,8 +14,8 @@ return new class extends Migration
         Schema::create('attendance_correction_breaktimes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('attendance_correction_id')->constrained('attendance_corrections', 'id', 'attendance_correction_breaks_attendance_correction_id_foreign')->onDelete('cascade');
-            $table->datetime('break_start_at');
-            $table->datetime('break_end_at');
+            $table->datetime('break_in');
+            $table->datetime('break_out');
             $table->timestamps();
         });
     }

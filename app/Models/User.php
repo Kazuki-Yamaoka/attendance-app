@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Models\AttendanceRecord;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -46,8 +47,40 @@ class User extends Authenticatable
         'is_admin' => 'boolean',
     ];
 
-    public function attendance_records(): HasMany
+    public function AttendanceRecords(): HasMany
     {
         return $this->hasMany(AttendanceRecord::class);
+    }
+
+    // 今日（本日の日付）の勤怠レコードを1件取得する便利メソッド
+    public function todayAttendance()
+    {
+        return $this->attendanceRecords()->whereDate('date', today())->first();
+    }
+
+    public function getAttendanceStatusAttribute(): string
+    {
+        // 今日の勤怠レコードを取得
+        $todayRecord = $this->todayAttendance();
+
+        // 1. レコードがない、または出勤してない ＝ 勤務外
+        if (!$todayRecord || !$todayRecord->clock_in) {
+            return '勤務外';
+        }
+
+        // 2. すでに退勤時刻が入っている ＝ 退勤済
+        if ($todayRecord->clock_out) {
+            return '退勤済';
+        }
+
+        // 3. 休憩テーブル（break_times）を確認する
+        // 最新の休憩レコードを取得し、休憩中でまだ戻っていない（break_outがnull）ものがあるかチェック
+        $latestBreak = $todayRecord->breakTimes()->latest('id')->first();
+        if ($latestBreak && $latestBreak->break_in && !$latestBreak->break_out) {
+            return '休憩中';
+        }
+
+        // 4. それ以外（出勤打刻済み、退勤してない、休憩中でもない） ＝ 出勤中
+        return '出勤中';
     }
 }

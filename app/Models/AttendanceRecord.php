@@ -19,23 +19,13 @@ class AttendanceRecord extends Model
         'clock_out',
     ];
 
-    public function break_times(): HasMany
+    public function BreakTimes(): HasMany
     {
         return $this->hasMany(BreakTime::class);
     }
 
-    public function users(): BelongsTo
+    public function Users(): BelongsTo
     {
         return $this->belongsTo(User::class);
-    }
-
-    public function getAttendanceStatusAttribute(): string
-    {
-        return match ($this->attendance) {
-            default => '勤務外',
-            1 => '出勤中',
-            2 => '休憩中',
-            3 => '退勤済',
-        };
     }
 }
