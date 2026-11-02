@@ -240,8 +240,8 @@ class AttendanceController extends Controller
      */
     private function formatMinutesToHours(int $minutes): ?string
     {
-        if ($minutes <= 0) {
-            return null;
+        if ($minutes < 0) {
+            $minutes = 0;
         }
 
         $hours = floor($minutes / 60);

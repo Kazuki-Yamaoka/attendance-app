@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -82,5 +83,16 @@ class User extends Authenticatable
 
         // 4. それ以外（出勤打刻済み、退勤してない、休憩中でもない） ＝ 出勤中
         return '出勤中';
+    }
+
+    /**
+     * admin_status アクセサの定義
+     * （$user->admin_status でアクセスされた際に、内部で is_admin の値を返す）
+     */
+    protected function adminStatus(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value, $attributes) => $attributes['is_admin'] ?? null,
+        );
     }
 }

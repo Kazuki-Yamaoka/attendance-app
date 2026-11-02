@@ -63,4 +63,20 @@ class AdminLoginController extends Controller
 
         return redirect()->intended('/admin/attendance/list');
     }
+
+    /**
+     * 管理者用ログアウト処理
+     */
+    public function logout(Request $request)
+    {
+        // 管理者ガード（'admin'）を指定してログアウト
+        Auth::guard('admin')->logout();
+
+        // セッションを破棄してトークンを再生成
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        // 管理者ログイン画面へリダイレクト
+        return redirect('/admin/login');
+    }
 }
