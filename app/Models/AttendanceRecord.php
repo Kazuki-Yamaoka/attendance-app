@@ -19,12 +19,12 @@ class AttendanceRecord extends Model
         'clock_out',
     ];
 
-    public function BreakTimes(): HasMany
+    public function breakTimes(): HasMany
     {
         return $this->hasMany(BreakTime::class);
     }
-
-    public function Users(): BelongsTo
+    
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

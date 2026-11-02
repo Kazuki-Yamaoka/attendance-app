@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AdminAttendanceController;
+use App\Http\Controllers\AdminStaffController;
 use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use Illuminate\Support\Facades\Route;
@@ -45,7 +47,13 @@ Route::middleware('guest')->group(function () {
 // （参考）管理者専用エリアのミドルウェア保護などはここにぶら下げる
 
 Route::middleware('admin')->group(function () {
-    Route::get('/admin/attendance/list', fn() => '管理者用勤怠一覧（準備中）')->name('admin.attendance.index');
-    Route::get('/admin/staff/list', fn() => '管理者用スタッフ一覧（準備中）')->name('admin.staff.index');
+    Route::get('/admin/attendance/list', [AdminAttendanceController::class, 'index'])->name('admin.attendance.index');
+    Route::get('/admin/attendance/{id}', [AdminAttendanceController::class, 'show'])->name('admin.attendance.show');
+    Route::post('/admin/attendance/{id}', [AdminAttendanceController::class, 'update'])->name('admin.attendance.update');
+    Route::get('/admin/staff/{id}', [AdminStaffController::class, 'index'])->name('admin.staff.index');
+    Route::get('/admin/attendance/staff/{id}', [AdminStaffController::class, 'show'])->name('admin.staff.show');
+    Route::post('/admin/attendance/staff/{id}', [AdminStaffController::class, 'export'])->name('admin.staff.export');
     Route::get('/stamp_correction_request/list', fn() => '管理者用申請一覧（準備中）')->name('admin.request.index');
+    // ★ ここに管理者用ログアウトのルートを追加
+    Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->name('admin.logout');
 });
