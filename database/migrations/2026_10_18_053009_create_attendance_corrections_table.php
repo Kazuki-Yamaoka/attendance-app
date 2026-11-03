@@ -14,9 +14,10 @@ return new class extends Migration
         Schema::create('attendance_corrections', function (Blueprint $table) {
             $table->id();
             $table->foreignId('attendance_record_id')->constrained()->onDelete('cascade');
-            $table->datetime('clock_in');
-            $table->datetime('clock_out');
-            $table->string('notes');
+            $table->datetime('new_clock_in');
+            $table->datetime('new_clock_out');
+            $table->string('comments');
+            $table->string('approval_status')->default('承認待ち');
             $table->timestamps();
         });
     }

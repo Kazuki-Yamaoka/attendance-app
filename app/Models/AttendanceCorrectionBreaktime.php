@@ -11,8 +11,8 @@ class AttendanceCorrectionBreaktime extends Model
 
     protected $fillable = [
         'attendance_correction_id',
-        'break_in',
-        'break_out',
+        'new_break_in',
+        'new_break_out',
     ];
 
     public function AttendanceCorrection(): BelongsTo

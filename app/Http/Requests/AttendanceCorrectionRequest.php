@@ -27,6 +27,7 @@ class AttendanceCorrectionRequest extends FormRequest
             'new_break_in.*' => 'nullable|date_format:H:i|after:new_clock_in|before:new_clock_out',
             'new_break_out.*' => 'nullable|date_format:H:i|after:new_break_in.*|before:new_clock_out',
             'comment' => 'required|string',
+            'approval_status' => 'required|string|in:承認待ち,承認済み'
         ];
     }
 
