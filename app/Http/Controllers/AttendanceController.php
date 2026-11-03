@@ -319,10 +319,8 @@ class AttendanceController extends Controller
                     'attendance_record_id' => $attendanceRecord->id,
                 ],
                 [
-                    'user_id' => $attendanceRecord->user_id,
-                    'date' => $attendanceRecord->date,
-                    'clock_in' => $request->input('new_clock_in'),
-                    'clock_out' => $request->input('new_clock_out'),
+                    'new_clock_in' => $request->input('new_clock_in'),
+                    'new_clock_out' => $request->input('new_clock_out'),
                     'comment' => $request->input('comment'),
                 ]
             );
@@ -339,8 +337,8 @@ class AttendanceController extends Controller
                 if (!empty($breakIn) && !empty($breakOut)) {
                     AttendanceCorrectionBreaktime::create([
                         'attendance_correction_id' => $correction->id,
-                        'break_in' => $breakIn,
-                        'break_out' => $breakOut,
+                        'new_break_in' => $breakIn,
+                        'new_break_out' => $breakOut,
                     ]);
                 }
             }
