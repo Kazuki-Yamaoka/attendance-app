@@ -129,40 +129,50 @@ class AdminAttendanceController extends Controller
     }
 
     /**
-     * 2. 管理者用 修正処理 (POST: /attendance/{id})
+     * 管理者用 修正処理 (POST: /attendance/{id} など)
      */
     public function update(AttendanceCorrectionRequest $request, $id)
     {
-        // 修正対象の勤怠モデルを $attendance として取得
+        // 修正対象の勤怠モデルを取得
         $attendance = AttendanceRecord::findOrFail($id);
 
-        // 出勤・退勤・備考の更新
+        // 基準となる日付文字列 (例: '2026-05-10')
+        $dateStr = Carbon::parse($attendance->date)->format('Y-m-d');
+
+        // ビューから送られてくる 'new_clock_in' / 'new_clock_out' を取得し、DB用の日時形式に変換
+        $clockIn = $request->input('new_clock_in') ? "{$dateStr} {$request->input('new_clock_in')}:00" : null;
+        $clockOut = $request->input('new_clock_out') ? "{$dateStr} {$request->input('new_clock_out')}:00" : null;
+
+        // 1. 勤怠テーブル（attendance_records）の出勤・退勤・備考を直接更新
         $attendance->update([
-            'clock_in' => $request->input('new_clock_in'),
-            'clock_out' => $request->input('new_clock_out'),
-            'comment' => $request->input('comment'),
+            'clock_in'  => $clockIn,
+            'clock_out' => $clockOut,
+            'comment'   => $request->input('comment'),
         ]);
 
-        // 休憩時間の更新（既存をリセットして再登録）
-        $newBreakIns = $request->input('new_break_in', []);
-        $newBreakOuts = $request->input('new_break_out', []);
+        // 2. 休憩時間の更新（既存をリセットして再登録）
+        // ビューからは 'new_break_in' と 'new_break_out' という名前で配列で送られてくる
+        $breakIns = $request->input('new_break_in', []);
+        $breakOuts = $request->input('new_break_out', []);
 
         $attendance->breakTimes()->delete();
 
-        foreach ($newBreakIns as $index => $breakIn) {
-            $breakOut = $newBreakOuts[$index] ?? null;
+        foreach ($breakIns as $index => $breakIn) {
+            $breakOut = $breakOuts[$index] ?? null;
             
-            // 開始と終了の両方が入力されている場合のみ保存
+            // 開始と終了の両方が入力されている場合のみ、日付と結合して保存
             if (!empty($breakIn) && !empty($breakOut)) {
+                $formattedBreakIn = "{$dateStr} {$breakIn}:00";
+                $formattedBreakOut = "{$dateStr} {$breakOut}:00";
+
                 $attendance->breakTimes()->create([
-                    'break_in' => $breakIn,
-                    'break_out' => $breakOut,
+                    'break_in'  => $formattedBreakIn,
+                    'break_out' => $formattedBreakOut,
                 ]);
             }
         }
 
-        // 更新後は詳細画面（または一覧など適切な画面）へリダイレクト
-        // ※ url() や命名規則に合わせて調整してください
-        return redirect('/attendance/' . $id)->with('success', '勤怠情報を修正しました。');
+        // 更新後は適切な詳細画面へリダイレクト
+        return redirect()->to('admin/attendance/' . $id)->with('success', '勤怠情報を修正しました。');
     }
 }

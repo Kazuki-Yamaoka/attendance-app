@@ -17,13 +17,10 @@ class AttendanceCorrectionBreaktimeFactory extends Factory
      */
     public function definition(): array
     {
-        // 自動生成されるカラム以外を設定
-        $date = fake()->date();
-
         return [
-            'attendance_correction_id' => fake()->numberBetween(1, 3),
-            'break_in' => $date . ' 14:00:00',
-            'break_out' => $date . ' 15:00:00',
+            'attendance_correction_id' => 1,
+            'new_break_in' => $date . ' 14:00:00',
+            'new_break_out' => $date . ' 15:00:00',
         ];
     }
 }
