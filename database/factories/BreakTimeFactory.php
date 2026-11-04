@@ -17,9 +17,6 @@ class BreakTimeFactory extends Factory
      */
     public function definition(): array
     {
-        // 自動生成されるカラム以外を設定
-        $date = fake()->date();
-
         return [
             'attendance_record_id' => 1, // シーダー側で上書きするため仮の値を設定
             'break_in' => now()->format('Y-m-d') . ' 12:00:00',

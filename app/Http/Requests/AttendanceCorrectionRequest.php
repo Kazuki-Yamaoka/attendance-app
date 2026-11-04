@@ -24,8 +24,8 @@ class AttendanceCorrectionRequest extends FormRequest
         return [
             'new_clock_in' => 'required|date_format:H:i',
             'new_clock_out' => 'required|date_format:H:i|after:new_clock_in',
-            'new_break_in.*' => 'nullable|date_format:H:i|after:new_clock_in|before:new_clock_out',
-            'new_break_out.*' => 'nullable|date_format:H:i|after:new_break_in.*|before:new_clock_out',
+            'new_break_in.*' => 'nullable|date_format:H:i|after:new_clock_in|before:new_clock_out|before:new_break_out.*',
+            'new_break_out.*' => 'nullable|date_format:H:i|before:new_clock_out',
             'comment' => 'required|string',
             'approval_status' => 'required|string|in:承認待ち,承認済み'
         ];
@@ -35,9 +35,8 @@ class AttendanceCorrectionRequest extends FormRequest
     {
         return [
             'new_clock_out.after' => '出勤時間もしくは退勤時間が不適切な値です',
-            'new_break_in.*.after' => '休憩時間が不適切な値です',
+            'new_break_in.*.before' => '休憩時間が不適切な値です',
             'new_break_out.*.before' => '休憩時間もしくは退勤時間が不適切な値です',
-            'new_break_out.*.after' => '休憩時間が不適切な値です',
             'comment.required' => '備考を記入してください',
         ];
     }

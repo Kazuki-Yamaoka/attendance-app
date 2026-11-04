@@ -10,13 +10,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
-class AttendanceListAndCorrectionTest extends TestCase
+class AttendanceListTest extends TestCase
 {
     use RefreshDatabase;
     /**
      * A basic feature test example.
      */
 
+    
     /** @test */
     public function 自分が行った勤怠情報が全て表示されている()
     {
@@ -285,4 +286,6 @@ class AttendanceListAndCorrectionTest extends TestCase
         $response->assertSee('12:00');
         $response->assertSee('13:00');
     }
+
+    
 }

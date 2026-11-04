@@ -18,6 +18,23 @@ class AttendanceTest extends TestCase
      */
 
     /** @test */
+    public function 勤怠打刻画面に現在の日時情報がUIと同じ形式で表示されている()
+    {
+        // 1. 一般ユーザーを作成してログインする
+        $user = User::factory()->create();
+
+        // 2. 勤怠打刻画面を開く (/attendance)
+        $response = $this->actingAs($user)->get('/attendance');
+
+        // 3. 画面が正常に表示されることを確認
+        $response->assertStatus(200);
+
+        // 4. コントローラー側と同じ形式（translatedFormat）で日付が表示されていることを確認する
+        $expectedDate = Carbon::now()->translatedFormat('Y年m月d日（D）');
+        $response->assertSee($expectedDate);
+    }
+
+    /** @test */
     public function 勤務外の場合、勤怠ステータスが正しく表示される()
     {
         // 1. ステータスが勤務外のユーザーにログインする（本日の打刻データなし）

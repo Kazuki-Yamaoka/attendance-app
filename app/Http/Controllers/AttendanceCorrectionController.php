@@ -4,68 +4,135 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceCorrection;
+use App\Models\AttendanceRecord;
+use App\Models\BreakTime;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
 class AttendanceCorrectionController extends Controller
 {
-/**
-     * 申請一覧画面（一般ユーザー・管理者 共通ルート）
-     */
     public function index()
     {
-        // 1. ログイン中のユーザーを取得
-        $user = Auth::user();
+        // 1. 管理者ガード（'admin'）でログインしているかチェック
+        if (Auth::guard('admin')->check()) {
+            $applications = AttendanceCorrection::with(['attendanceRecord.user'])
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        // 2. 管理者の場合の処理
-        // ※プロジェクトの管理者判定カラムに合わせて条件を変更してください（例: $user->is_admin や $user->role === 'admin' など）
-        if ($user->is_admin === true) {
-            // 管理者の場合は全件取得（必要に応じてユーザー情報もロード）
-            $corrections = AttendanceCorrection::with(['attendanceRecord.user'])
+            return view('admin.admin-application-list', compact('applications'));
+        }
+
+        // 2. 一般ユーザーガード（デフォルト 'web'）でログインしているかチェック
+        if (Auth::check()) {
+            $user = Auth::user();
+
+            // 修正申請と大元の勤怠レコードをセットで取得
+            $corrections = AttendanceCorrection::with('attendanceRecord')
+                ->whereHas('attendanceRecord', function ($query) use ($user) {
+                    $query->where('user_id', $user->id);
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             $formattedApplications = $corrections->map(function ($correction) {
+                // 勤怠レコードが存在するかチェック
+                $attendance = $correction->attendanceRecord;
+
+                $targetDate = '';
+                if ($attendance && $attendance->date) {
+                    $targetDate = Carbon::parse($attendance->date)->format('Y/m/d');
+                }
+
                 return [
-                    'id' => $correction->id,
-                    'user_name' => $correction->attendanceRecord && $correction->attendanceRecord->user 
-                        ? $correction->attendanceRecord->user->name 
-                        : '', // 管理者画面で申請者名を表示する場合などに活用
+                    // ★【超重要】詳細画面が「勤怠レコードのID」を求めているため、ここを勤怠IDにする！
+                    'id' => $attendance ? $attendance->id : $correction->id, 
+                    
                     'approval_status' => $correction->approval_status,
-                    'date' => $correction->attendanceRecord 
-                        ? Carbon::parse($correction->attendanceRecord->date)->format('Y/m/d') 
-                        : '',
+                    'date' => $targetDate, // 勤怠テーブルの正確な日付
                     'comment' => $correction->comment,
                     'application_date' => $correction->created_at->format('Y/m/d'),
                 ];
             });
 
-            // 管理者用のビューを返す
-            return view('admin.request.index', compact('user', 'formattedApplications'));
+            return view('user.user-application-list', compact('user', 'formattedApplications'));
         }
 
-        // 3. 一般ユーザーの場合の処理
-        $corrections = AttendanceCorrection::with('attendanceRecord')
-            ->whereHas('attendanceRecord', function ($query) use ($user) {
-                $query->where('user_id', $user->id);
-            })
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // 3. どちらもログインしていなければログイン画面へ
+        return redirect()->route('login');
+    }
 
-        $formattedApplications = $corrections->map(function ($correction) {
-            return [
-                'id' => $correction->id,
-                'approval_status' => $correction->approval_status,
-                'date' => $correction->attendanceRecord 
-                    ? Carbon::parse($correction->attendanceRecord->date)->format('Y/m/d') 
-                    : '',
-                'comment' => $correction->comment,
-                'application_date' => $correction->created_at->format('Y/m/d'),
-            ];
+    /**
+     * 修正申請詳細（承認画面）を表示する
+     */
+    public function show($id)
+    {
+        // 修正申請データに紐づく勤怠レコード、ユーザー、休憩修正データを一緒に取得
+        $application = AttendanceCorrection::with([
+            'attendanceRecord.user', 
+            'proposalBreaks' // モデル側で定義したリレーション名
+        ])->findOrFail($id);
+
+        // 1. 日付（new_date）を Carbon インスタンスとして動的にセット
+        if ($application->attendanceRecord && $application->attendanceRecord->date) {
+            $application->new_date = Carbon::parse($application->attendanceRecord->date);
+        } else {
+            $application->new_date = Carbon::now();
+        }
+
+        // 2. 出勤時間（new_clock_in）を "H:i" 形式に変換
+        if ($application->new_clock_in) {
+            $application->new_clock_in = Carbon::parse($application->new_clock_in)->format('H:i');
+        }
+
+        // 3. 退勤時間（new_clock_out）を "H:i" 形式に変換
+        if ($application->new_clock_out) {
+            $application->new_clock_out = Carbon::parse($application->new_clock_out)->format('H:i');
+        }
+
+        // 4. 休憩修正データのプロパティ名をビューに合わせてマッピング
+        // （データベースの new_break_in / new_break_out を、ビューが求めている break_in / break_out に割り当てる）
+        foreach ($application->proposalBreaks as $break) {
+            $break->break_in = $break->new_break_in;
+            $break->break_out = $break->new_break_out;
+        }
+
+        // ビュー側で $user->name として参照するため、紐づくユーザー情報を取得して渡す
+        $user = $application->attendanceRecord->user ?? null;
+
+        return view('admin.admin-application-detail', compact('application', 'user'));
+    }
+
+    public function approve($attendance_correct_request_id)
+    {
+        \DB::transaction(function () use ($attendance_correct_request_id) {
+            $application = AttendanceCorrection::with('proposalBreaks')->findOrFail($attendance_correct_request_id);
+            $attendanceRecord = AttendanceRecord::findOrFail($application->attendance_record_id);
+
+            // 1. 元の勤怠レコードを上書き更新
+            $attendanceRecord->update([
+                'clock_in'  => $application->new_clock_in,
+                'clock_out' => $application->new_clock_out,
+            ]);
+
+            // 2. 元の休憩レコードを一度すべて削除し、修正申請側の休憩で置き換える
+            $attendanceRecord->breakTimes()->delete();
+
+            foreach ($application->proposalBreaks as $proposalBreak) {
+                BreakTime::create([
+                    'attendance_record_id' => $attendanceRecord->id,
+                    'break_in'             => $proposalBreak->new_break_in,
+                    'break_out'            => $proposalBreak->new_break_out,
+                ]);
+            }
+
+            // 3. 修正申請のステータスを「承認済み」に変更して保存
+            $application->update([
+                'approval_status' => '承認済み',
+            ]);
         });
 
-        // 一般ユーザー用のビューを返す
-        return view('user.user-application-list', compact('user', 'formattedApplications'));
+        return redirect()->route('admin.attendance.index')->with('success', '修正申請を承認しました。');
     }
 }

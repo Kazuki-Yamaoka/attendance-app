@@ -257,29 +257,38 @@ class AttendanceController extends Controller
     {
         $user = Auth::user();
 
-        // 1. 元の勤怠レコードを取得
+        // 1. 大元の「勤怠レコード」を基準に取得する（不正アクセス防止のため user_id もチェック）
+        // 合わせて、最新の「承認待ち」の修正申請があれば一緒にロードする
         $attendanceRecord = AttendanceRecord::where('user_id', $user->id)
-            ->with('breakTimes')
+            ->with([
+                'breakTimes',
+                'attendanceCorrections' => function ($query) {
+                    $query->where('approval_status', '承認待ち')
+                          ->with('attendanceCorrectionBreaktimes');
+                }
+            ])
             ->findOrFail($id);
 
-        // 2. 「修正申請テーブル」にこの勤怠のレコードが存在するか確認
-        // レコードがあれば＝「申請中（承認待ち）」とみなす
-        $pendingApplication = AttendanceCorrection::where('attendance_record_id', $attendanceRecord->id)
-            ->with('attendanceCorrectionBreaktimes')
-            ->first();
+        // 2. 紐づく「承認待ち」の申請データを取得（なければ null）
+        $pendingApplication = $attendanceRecord->attendanceCorrections->first();
 
-        // 3. 申請データが存在すれば「申請中の値」、なければ「元の勤怠データ」を表示のベースにする
-        $targetClockIn = $pendingApplication ? $pendingApplication->clock_in : $attendanceRecord->clock_in;
-        $targetClockOut = $pendingApplication ? $pendingApplication->clock_out : $attendanceRecord->clock_out;
-        $targetBreaks = $pendingApplication ? $pendingApplication->attendanceCorrectionBreaktimes : $attendanceRecord->breakTimes;
-        $targetComment = $pendingApplication ? $pendingApplication->comment : $attendanceRecord->comment;
+        // 3. 承認待ちの申請が存在するかどうかで表示データを切り替える
+        $isPending = !is_null($pendingApplication);
+
+        $targetClockIn = $isPending ? $pendingApplication->new_clock_in : $attendanceRecord->clock_in;
+        $targetClockOut = $isPending ? $pendingApplication->new_clock_out : $attendanceRecord->clock_out;
+        $targetBreaks = $isPending ? $pendingApplication->attendanceCorrectionBreaktimes : $attendanceRecord->breakTimes;
+        $targetComment = $isPending ? $pendingApplication->comment : $attendanceRecord->comment;
 
         // 4. 休憩データの整形
         $breaks = [];
         foreach ($targetBreaks as $break) {
+            $in = $break->new_break_in ?? $break->break_in ?? null;
+            $out = $break->new_break_out ?? $break->break_out ?? null;
+
             $breaks[] = [
-                'break_in' => $break->break_in ? Carbon::parse($break->break_in)->format('H:i') : '',
-                'break_out' => $break->break_out ? Carbon::parse($break->break_out)->format('H:i') : '',
+                'break_in' => $in ? Carbon::parse($in)->format('H:i') : '',
+                'break_out' => $out ? Carbon::parse($out)->format('H:i') : '',
             ];
         }
 
@@ -287,8 +296,8 @@ class AttendanceController extends Controller
 
         // 5. ビューへ渡す `$data` 配列
         $data = [
-            'id' => $attendanceRecord->id,
-            'application' => $pendingApplication, // レコードがあればオブジェクト、なければ null
+            'id' => $attendanceRecord->id, // 勤怠レコードのID
+            'application' => $pendingApplication, // 承認待ちならオブジェクト、なければ null
             'year' => $recordDate->format('Y年'),
             'date' => $recordDate->format('n月j日'),
             'clock_in' => $targetClockIn ? Carbon::parse($targetClockIn)->format('H:i') : '',
