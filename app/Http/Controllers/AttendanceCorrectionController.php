@@ -10,6 +10,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class AttendanceCorrectionController extends Controller
 {
@@ -17,6 +18,12 @@ class AttendanceCorrectionController extends Controller
     {
         // 1. 管理者ガード（'admin'）でログインしているかチェック
         if (Auth::guard('admin')->check()) {
+
+            // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+            if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceCorrection::class)) {
+                abort(403, '管理者権限がありません。');
+            }
+
             $applications = AttendanceCorrection::with(['attendanceRecord.user'])
                 ->orderBy('created_at', 'desc')
                 ->get();
@@ -26,6 +33,8 @@ class AttendanceCorrectionController extends Controller
 
         // 2. 一般ユーザーガード（デフォルト 'web'）でログインしているかチェック
         if (Auth::check()) {
+            $this->authorize('viewAny', AttendanceCorrection::class);
+
             $user = Auth::user();
 
             // 修正申請と大元の勤怠レコードをセットで取得
@@ -81,6 +90,11 @@ class AttendanceCorrectionController extends Controller
             $application->new_date = Carbon::now();
         }
 
+        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('view', $application)) {
+            abort(403, '管理者権限がありません。');
+        }
+
         // 2. 出勤時間（new_clock_in）を "H:i" 形式に変換
         if ($application->new_clock_in) {
             $application->new_clock_in = Carbon::parse($application->new_clock_in)->format('H:i');
@@ -109,6 +123,11 @@ class AttendanceCorrectionController extends Controller
         \DB::transaction(function () use ($attendance_correct_request_id) {
             $application = AttendanceCorrection::with('proposalBreaks')->findOrFail($attendance_correct_request_id);
             $attendanceRecord = AttendanceRecord::findOrFail($application->attendance_record_id);
+
+            // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+            if (! Gate::forUser(Auth::guard('admin')->user())->allows('approve', $application)) {
+                abort(403, '管理者権限がありません。');
+            }
 
             // 1. 元の勤怠レコードを上書き更新
             $attendanceRecord->update([

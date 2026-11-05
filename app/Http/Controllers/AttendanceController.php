@@ -122,6 +122,8 @@ class AttendanceController extends Controller
     // ==========================================
     public function list(Request $request)
     {
+        $this->authorize('viewAny', AttendanceRecord::class);
+
         $user = Auth::user();
 
         // 基準日と月の前後の取得
@@ -269,6 +271,8 @@ class AttendanceController extends Controller
             ])
             ->findOrFail($id);
 
+        $this->authorize('view', $attendanceRecord);
+
         // 2. 紐づく「承認待ち」の申請データを取得（なければ null）
         $pendingApplication = $attendanceRecord->attendanceCorrections->first();
 
@@ -306,7 +310,7 @@ class AttendanceController extends Controller
             'comment' => $targetComment ?? '',
         ];
 
-        return view('user.user-detail', compact('user', 'data'));
+        return view('user.user-detail', compact('user', 'data', 'attendanceRecord'));
     }
 
     /**
@@ -318,6 +322,8 @@ class AttendanceController extends Controller
 
         // 対象の元レコードが存在するか確認
         $attendanceRecord = AttendanceRecord::where('user_id', $user->id)->findOrFail($id);
+
+        $this->authorize('request', $attendanceRecord);
 
         // データの整合性を保つためDBトランザクションを使用
         DB::transaction(function () use ($request, $attendanceRecord) {

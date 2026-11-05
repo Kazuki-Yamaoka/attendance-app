@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Fluent; // ← これを追加
 use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Auth;
 
 class AdminStaffController extends Controller
 {
@@ -17,6 +19,11 @@ class AdminStaffController extends Controller
      */
     public function index()
     {
+        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAny', User::class)) {
+            abort(403, '管理者権限がありません。');
+        }
+
         // 全スタッフを取得し、オブジェクトと配列の両方でアクセスできる Fluent に変換する
         $users = User::all()->map(function ($user) {
             return new Fluent($user->toArray());
@@ -31,6 +38,11 @@ class AdminStaffController extends Controller
      */
     public function show(Request $request, $id)
     {
+        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
+            abort(403, '管理者権限がありません。');
+        }
+        
         // 1. 対象のユーザーを取得
         $user = User::findOrFail($id);
 
