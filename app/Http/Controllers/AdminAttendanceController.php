@@ -8,6 +8,8 @@ use App\Models\User;
 use App\Models\AttendanceRecord;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Auth;
 
 class AdminAttendanceController extends Controller
 {
@@ -16,6 +18,11 @@ class AdminAttendanceController extends Controller
      */
     public function index(Request $request)
     {
+        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
+            abort(403, '管理者権限がありません。');
+        }
+
         // 1. リクエストから日付を取得（指定がない場合は今日）
         $dateParam = $request->input('date');
         $date = $dateParam ? Carbon::parse($dateParam) : Carbon::today();
@@ -105,6 +112,11 @@ class AdminAttendanceController extends Controller
         // 勤怠モデルの変数を $attendance に統一
         $attendance = AttendanceRecord::findOrFail($id);
 
+        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('view', $attendance)) {
+            abort(403, '管理者権限がありません。');
+        }
+
         $user = $attendance->user;
         $breakTimes = $attendance->breakTimes;
 
@@ -129,12 +141,17 @@ class AdminAttendanceController extends Controller
     }
 
     /**
-     * 管理者用 修正処理 (POST: /attendance/{id} など)
+     * 管理者用 修正処理 (POST: admin/attendance/{id} など)
      */
     public function update(AttendanceCorrectionRequest $request, $id)
     {
         // 修正対象の勤怠モデルを取得
         $attendance = AttendanceRecord::findOrFail($id);
+
+        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('update', $attendance)) {
+            abort(403, '管理者権限がありません。');
+        }
 
         // 基準となる日付文字列 (例: '2026-05-10')
         $dateStr = Carbon::parse($attendance->date)->format('Y-m-d');

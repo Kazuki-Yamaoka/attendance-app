@@ -10,19 +10,14 @@ use Illuminate\Http\Request;
 
 class AdminLoginController extends Controller
 {
-    public function create()
+public function create()
     {
-        // ★もしすでにログインしている場合
-        if (auth()->check()) {
-            // もし一般ユーザー（is_admin が false）としてログイン中なら、一般のダッシュボードへ強制送還
-            if (!auth()->user()->is_admin) {
-                return redirect('/attendance')->with('error', 'すでに一般ユーザーとしてログインしています。');
-            }
-            
-            // すでに管理者としてログイン中なら、管理者ダッシュボードへ飛ばす
+        // すでに管理者としてログイン中なら、そのまま管理者ダッシュボードへ飛ばす
+        if (Auth::guard('admin')->check()) {
             return redirect('/admin/attendance/list');
         }
 
+        // 未ログインなら管理者ログイン画面を表示
         return view('admin.admin-login');
     }
 

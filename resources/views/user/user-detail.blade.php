@@ -9,6 +9,7 @@
         <div class="detail__header">
             <h1 class="content__header--item">勤怠詳細</h1>
         </div>
+        @can('request', $attendanceRecord)
         <form class="form" action="{{ url('/attendance/detail/' . $data['id']) }}" method="post">
             @csrf
 
@@ -161,5 +162,6 @@
             @endif
 
         </form>
+        @endcan
     </div>
 @endsection
