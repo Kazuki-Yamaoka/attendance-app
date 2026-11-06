@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\AttendanceRecord;
 use Illuminate\Http\Request;
-use Illuminate\Support\Fluent; // ← これを追加
+use Illuminate\Support\Fluent; 
 use Carbon\Carbon;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Illuminate\Support\Facades\Gate;
@@ -14,31 +14,27 @@ use Illuminate\Support\Facades\Auth;
 
 class AdminStaffController extends Controller
 {
-/**
+    /**
      * 管理者用 スタッフ一覧画面を表示
      */
     public function index()
     {
-        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAny', User::class)) {
             abort(403, '管理者権限がありません。');
         }
 
-        // 全スタッフを取得し、オブジェクトと配列の両方でアクセスできる Fluent に変換する
         $users = User::all()->map(function ($user) {
             return new Fluent($user->toArray());
         });
 
-        // ビューにデータを渡して表示（ビュー側は一切変更不要）
         return view('admin.staff-list', compact('users'));
     }
 
-/**
+    /**
      * 指定スタッフの月次勤怠一覧画面を表示 (GET: /admin/attendance/staff/{id})
      */
     public function show(Request $request, $id)
     {
-        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
             abort(403, '管理者権限がありません。');
         }
@@ -102,6 +98,10 @@ class AdminStaffController extends Controller
      */
     public function export(Request $request)
     {
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
+            abort(403, '管理者権限がありません。');
+        }
+
         $userId = $request->input('user_id');
         $yearMonth = $request->input('year_month'); // 例: '2026-10'
 
@@ -121,6 +121,9 @@ class AdminStaffController extends Controller
         $callback = function () use ($startDate, $endDate, $attendanceRecords, $user) {
             $file = fopen('php://output', 'w');
 
+            // ★【重要】Excelで文字化けしないようにUTF-8のBOM（\xEF\xBB\xBF）を最初に出力する
+            fwrite($file, "\xEF\xBB\xBF");
+
             // 1行目（ヘッダー）
             fputcsv($file, ['日付', '名前', '出勤', '退勤', '休憩', '合計']);
 
@@ -132,7 +135,7 @@ class AdminStaffController extends Controller
                 // 計算処理を共通メソッドで実行
                 $metrics = $this->calculateAttendanceMetrics($record);
 
-                // CSV用に時間をフォーマット（G:i形式などに変換）
+                // CSV用に時間をフォーマット
                 $formattedBreakTime = $metrics['total_break_time'] ? Carbon::parse($metrics['total_break_time'])->format('G:i') : '';
                 $formattedTotalTime = $metrics['total_time'] ? Carbon::parse($metrics['total_time'])->format('G:i') : '';
 
@@ -152,7 +155,7 @@ class AdminStaffController extends Controller
         };
 
         return new StreamedResponse($callback, 200, [
-            'Content-Type' => 'text/csv',
+            'Content-Type' => 'text/csv; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
         ]);
     }
