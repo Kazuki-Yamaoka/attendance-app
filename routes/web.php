@@ -2,11 +2,14 @@
 
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceCorrectionController;
+use App\Http\Controllers\AttendanceReportController;
 use App\Http\Controllers\AdminAttendanceController;
 use App\Http\Controllers\AdminStaffController;
 use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\Auth\AdminLoginController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 
 /*
 |--------------------------------------------------------------------------
@@ -19,6 +22,24 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// 2. メール認証誘導画面
+Route::get('/email/verify', function () {
+    return view('auth.verify-email');
+})->middleware('auth')->name('verification.notice');
+
+// 3. メールのリンクをクリックしたときの処理
+Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
+    $request->fulfill();
+
+    return redirect('/attendance'); // 4-d. 認証完了後の勤怠登録画面などへ
+})->middleware(['auth', 'signed'])->name('verification.verify');
+
+// ★認証メール再送機能のルート
+Route::post('/email/verification-notification', function (Request $request) {
+    $request->user()->sendEmailVerificationNotification();
+    return back()->with('message', '認証メールを再送しました！');
+})->middleware(['auth', 'throttle:6,1'])->name('verification.send');
+
 
 // --- 【一般ユーザー用】 ---
 Route::middleware('guest')->group(function () {
@@ -27,14 +48,14 @@ Route::middleware('guest')->group(function () {
 });
 
 // 仮ルート（Chapter 4で本実装に置き換え）
-Route::middleware('auth')->group(function () {
+Route::middleware('auth', 'verified')->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
     Route::get('/attendance/list', [AttendanceController::class, 'list'])->name('attendance.list');
     Route::get('/attendance/detail/{id}', [AttendanceController::class, 'show'])->name('attendance.show');
     Route::post('/attendance/detail/{id}', [AttendanceController::class, 'update'])->name('attendance.update');
 
-    Route::get('/attendance/report', fn() => '勤怠統計レポート（準備中）')->name('report.index');
+    Route::get('/attendance/report', [AttendanceReportController::class, 'index'])->name('report.index');
 });
 
 
@@ -50,7 +71,7 @@ Route::middleware('admin')->group(function () {
     Route::get('/admin/attendance/list', [AdminAttendanceController::class, 'index'])->name('admin.attendance.index');
     Route::get('/admin/staff/{id}', [AdminStaffController::class, 'index'])->name('admin.staff.index');
     Route::get('/admin/attendance/staff/{id}', [AdminStaffController::class, 'show'])->name('admin.staff.show');
-    Route::post('/admin/attendance/staff/{id}', [AdminStaffController::class, 'export'])->name('admin.staff.export');
+    Route::post('/export', [AdminStaffController::class, 'export'])->name('admin.staff.export');
 
     Route::get('/admin/attendance/{id}', [AdminAttendanceController::class, 'show'])->name('admin.attendance.show');
     Route::post('/admin/attendance/{id}', [AdminAttendanceController::class, 'update'])->name('admin.attendance.update');
