@@ -26,6 +26,13 @@ class AttendanceRecord extends Model
     {
         return $this->hasMany(BreakTime::class);
     }
+
+    // --- ★今回新しく追加する別名（エイリアス）メソッド ---
+    public function breaks()
+    {
+        // 内部で既存の breakTimes() をそのまま返す
+        return $this->breakTimes();
+    }
     
     public function user(): BelongsTo
     {
@@ -36,6 +43,13 @@ class AttendanceRecord extends Model
     public function attendanceCorrections(): HasMany
     {
         return $this->hasMany(AttendanceCorrection::class);
+    }
+
+    // --- ★今回新しく追加する別名（エイリアス）メソッド ---
+    public function applications()
+    {
+        // 内部で既存の attendanceCorrections() をそのまま返す
+        return $this->attendanceCorrections();
     }
 
     // ★【重要】「承認待ち」の修正申請だけを1件取得するリレーションはここ（AttendanceRecord）に定義する！

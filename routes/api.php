@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Api\V1\AttendanceRecordController;
+use App\Http\Controllers\Api\V1\AuthController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -14,6 +16,17 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+Route::prefix('v1')->group(function () {
+    // ログイン用API（認証不要）
+    Route::post('login', [AuthController::class, 'login']);
+    // 認証不要のルート
+    Route::get('attendance-records', [AttendanceRecordController::class, 'index'])->name('attendance-records.index');;
+    Route::get('attendance-records/{attendanceRecord}', [AttendanceRecordController::class, 'show'])->name('attendance-records.show');;
+
+    // 認証が必要なルート
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('attendance-records', [AttendanceRecordController::class, 'store'])->name('attendance-records.store');;
+        Route::put('attendance-records/{attendanceRecord}', [AttendanceRecordController::class, 'update'])->name('attendance-records.update');;
+        Route::delete('attendance-records/{attendanceRecord}', [AttendanceRecordController::class, 'destroy'])->name('attendance-records.destroy');;
+    });
 });
