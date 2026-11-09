@@ -149,7 +149,7 @@ class AdminAttendanceController extends Controller
         $attendance = AttendanceRecord::findOrFail($id);
 
         // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
-        if (! Gate::forUser(Auth::guard('admin')->user())->allows('update', $attendance)) {
+        if (! Gate::forUser(Auth::guard('admin')->user())->allows('modify', $attendance)) {
             abort(403, '管理者権限がありません。');
         }
 
