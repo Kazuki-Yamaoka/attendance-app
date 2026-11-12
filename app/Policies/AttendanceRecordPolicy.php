@@ -4,7 +4,6 @@ namespace App\Policies;
 
 use App\Models\AttendanceRecord;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class AttendanceRecordPolicy
 {
@@ -15,7 +14,7 @@ class AttendanceRecordPolicy
     {
         // ログインしていれば一般ユーザーとして閲覧を許可
         // （あるいは一般ユーザーだけに絞るなら !$user->is_admin など）
-        return true; 
+        return true;
     }
 
     /**

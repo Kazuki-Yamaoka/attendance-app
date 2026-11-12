@@ -2,22 +2,21 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\Admin;
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceCorrection;
+use App\Models\AttendanceRecord;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AttendanceCorrectionTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * A basic feature test example.
      */
-/**
+    /**
      * テスト用ユーザーと勤怠レコードを作成する共通セットアップ
      */
     private function createTestUserAndAttendance()
@@ -44,10 +43,10 @@ class AttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細ページを開く (/attendance/detail/{id})
         // 3. 出勤時間を退勤時間より後に設定する
         // 4. 保存処理をする
-        $response = $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'  => '19:00', // 退勤(18:00)より後
+        $response = $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '19:00', // 退勤(18:00)より後
             'new_clock_out' => '18:00',
-            'comment'       => 'テスト修正理由',
+            'comment' => 'テスト修正理由',
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -67,12 +66,12 @@ class AttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細ページを開く (/attendance/detail/{id})
         // 3. 休憩開始時間を退勤時間より後に設定する
         // 4. 保存処理をする
-        $response = $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'  => '09:00',
+        $response = $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '09:00',
             'new_clock_out' => '18:00',
-            'new_break_in'  => ['19:00'], // 退勤(18:00)より後
+            'new_break_in' => ['19:00'], // 退勤(18:00)より後
             'new_break_out' => ['19:30'],
-            'comment'       => 'テスト修正理由',
+            'comment' => 'テスト修正理由',
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -92,12 +91,12 @@ class AttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細ページを開く (/attendance/detail/{id})
         // 3. 休憩終了時間を退勤時間より後に設定する
         // 4. 保存処理をする
-        $response = $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'  => '09:00',
+        $response = $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '09:00',
             'new_clock_out' => '18:00',
-            'new_break_in'  => ['12:00'],
+            'new_break_in' => ['12:00'],
             'new_break_out' => ['19:00'], // 退勤(18:00)より後
-            'comment'       => 'テスト修正理由',
+            'comment' => 'テスト修正理由',
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -116,10 +115,10 @@ class AttendanceCorrectionTest extends TestCase
         // 1. 勤怠情報が登録されたユーザーにログインをする
         // 2. 勤怠詳細ページを開く (/attendance/detail/{id})
         // 3. 備考欄を未入力のまま保存処理をする
-        $response = $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'  => '09:00',
+        $response = $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '09:00',
             'new_clock_out' => '18:00',
-            'comment'       => '', // 未入力
+            'comment' => '', // 未入力
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -128,13 +127,13 @@ class AttendanceCorrectionTest extends TestCase
         ]);
     }
 
-/**
+    /**
      * テスト項目5: 修正申請処理が実行される
      */
     public function test_attendance_correction_process_executed()
     {
         [$user, $attendance] = $this->createTestUserAndAttendance();
-        
+
         // 管理者もUserモデル（is_admin => true）で作成する
         $admin = User::factory()->create([
             'is_admin' => true,
@@ -142,18 +141,18 @@ class AttendanceCorrectionTest extends TestCase
 
         // 1. 勤怠情報が登録されたユーザーにログインをする
         // 2. 勤怠詳細を修正し保存処理をする (/attendance/detail/{id})
-        $response = $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'    => '10:00',
-            'new_clock_out'   => '19:00',
-            'comment'         => '遅延のため修正申請',
+        $response = $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '10:00',
+            'new_clock_out' => '19:00',
+            'comment' => '遅延のため修正申請',
             'approval_status' => '承認待ち',
         ]);
 
         // 保存処理によりデータベースに正しく申請が登録されていることを検証
         $this->assertDatabaseHas('attendance_corrections', [
             'attendance_record_id' => $attendance->id,
-            'comment'              => '遅延のため修正申請',
-            'approval_status'      => '承認待ち',
+            'comment' => '遅延のため修正申請',
+            'approval_status' => '承認待ち',
         ]);
 
         $correction = AttendanceCorrection::where('attendance_record_id', $attendance->id)->first();
@@ -167,7 +166,7 @@ class AttendanceCorrectionTest extends TestCase
 
         // 承認画面 (/stamp_correction_request/approve/{attendance_correct_request_id})
         $this->actingAs($admin, 'admin')
-            ->get('/stamp_correction_request/approve/' . $correction->id)
+            ->get('/stamp_correction_request/approve/'.$correction->id)
             ->assertStatus(200);
     }
 
@@ -180,10 +179,10 @@ class AttendanceCorrectionTest extends TestCase
 
         // 1. 勤怠情報が登録されたユーザーにログインをする
         // 2. 勤怠詳細を修正し保存処理をする
-        $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'    => '10:00',
-            'new_clock_out'   => '19:00',
-            'comment'         => '承認待ち申請のテスト',
+        $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '10:00',
+            'new_clock_out' => '19:00',
+            'comment' => '承認待ち申請のテスト',
             'approval_status' => '承認待ち',
         ]);
 
@@ -206,10 +205,10 @@ class AttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細を修正し保存処理をする（承認済みのデータを事前に用意してシミュレート）
         AttendanceCorrection::create([
             'attendance_record_id' => $attendance->id,
-            'new_clock_in'         => '10:00:00',
-            'new_clock_out'        => '19:00:00',
-            'comment'              => '管理者承認済み申請データ',
-            'approval_status'      => '承認済み',
+            'new_clock_in' => '10:00:00',
+            'new_clock_out' => '19:00:00',
+            'comment' => '管理者承認済み申請データ',
+            'approval_status' => '承認済み',
         ]);
 
         // 3. 申請一覧画面を開く (/stamp_correction_request/list)
@@ -230,10 +229,10 @@ class AttendanceCorrectionTest extends TestCase
 
         // 1. 勤怠情報が登録されたユーザーにログインをする
         // 2. 勤怠詳細を修正し保存処理をする
-        $this->actingAs($user)->post('/attendance/detail/' . $attendance->id, [
-            'new_clock_in'    => '10:00',
-            'new_clock_out'   => '19:00',
-            'comment'         => '詳細遷移テスト',
+        $this->actingAs($user)->post('/attendance/detail/'.$attendance->id, [
+            'new_clock_in' => '10:00',
+            'new_clock_out' => '19:00',
+            'comment' => '詳細遷移テスト',
             'approval_status' => '承認待ち',
         ]);
 
@@ -242,7 +241,7 @@ class AttendanceCorrectionTest extends TestCase
         $listResponse->assertStatus(200);
 
         // 4. 「詳細」ボタンを押す（/attendance/detail/{id} にアクセスして正常にページが開くことを検証）
-        $detailResponse = $this->actingAs($user)->get('/attendance/detail/' . $attendance->id);
+        $detailResponse = $this->actingAs($user)->get('/attendance/detail/'.$attendance->id);
         $detailResponse->assertStatus(200);
         $detailResponse->assertSee('勤怠詳細');
     }

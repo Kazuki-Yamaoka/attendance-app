@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Http\Requests\AttendanceCorrectionRequest;
-use App\Models\User;
 use App\Models\AttendanceRecord;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 
 class AdminAttendanceController extends Controller
 {
@@ -42,7 +41,7 @@ class AdminAttendanceController extends Controller
         // 5. 各レコードの休憩時間と合計勤務時間を計算して動的に付与
         foreach ($attendanceRecords as $attendance) {
             $metrics = $this->calculateAttendanceMetrics($attendance);
-            
+
             // ビューでプロパティとして扱えるようにセット
             $attendance->total_break_time = $metrics['total_break_time'];
             $attendance->total_time = $metrics['total_time'];
@@ -63,7 +62,7 @@ class AdminAttendanceController extends Controller
      */
     private function calculateAttendanceMetrics($attendance)
     {
-        if (!$attendance || !$attendance->clock_in || !$attendance->clock_out) {
+        if (! $attendance || ! $attendance->clock_in || ! $attendance->clock_out) {
             return [
                 'total_break_time' => null,
                 'total_time' => null,
@@ -162,9 +161,9 @@ class AdminAttendanceController extends Controller
 
         // 1. 勤怠テーブル（attendance_records）の出勤・退勤・備考を直接更新
         $attendance->update([
-            'clock_in'  => $clockIn,
+            'clock_in' => $clockIn,
             'clock_out' => $clockOut,
-            'comment'   => $request->input('comment'),
+            'comment' => $request->input('comment'),
         ]);
 
         // 2. 休憩時間の更新（既存をリセットして再登録）
@@ -176,20 +175,20 @@ class AdminAttendanceController extends Controller
 
         foreach ($breakIns as $index => $breakIn) {
             $breakOut = $breakOuts[$index] ?? null;
-            
+
             // 開始と終了の両方が入力されている場合のみ、日付と結合して保存
-            if (!empty($breakIn) && !empty($breakOut)) {
+            if (! empty($breakIn) && ! empty($breakOut)) {
                 $formattedBreakIn = "{$dateStr} {$breakIn}:00";
                 $formattedBreakOut = "{$dateStr} {$breakOut}:00";
 
                 $attendance->breakTimes()->create([
-                    'break_in'  => $formattedBreakIn,
+                    'break_in' => $formattedBreakIn,
                     'break_out' => $formattedBreakOut,
                 ]);
             }
         }
 
         // 更新後は適切な詳細画面へリダイレクト
-        return redirect()->to('admin/attendance/' . $id)->with('success', '勤怠情報を修正しました。');
+        return redirect()->to('admin/attendance/'.$id)->with('success', '勤怠情報を修正しました。');
     }
 }

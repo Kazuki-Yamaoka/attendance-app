@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AdminAuthenticationTest extends TestCase
@@ -15,7 +14,7 @@ class AdminAuthenticationTest extends TestCase
      */
 
     /** @test */
-    public function 管理者ログインでメールアドレスが未入力の場合はバリデーションエラーになる() 
+    public function 管理者ログインでメールアドレスが未入力の場合はバリデーションエラーになる()
     {
         // 【設計の指示通り】事前に管理者ユーザーを登録しておく
         User::factory()->create([
@@ -33,7 +32,7 @@ class AdminAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function 管理者ログインでパスワードが未入力の場合はバリデーションエラーになる() 
+    public function 管理者ログインでパスワードが未入力の場合はバリデーションエラーになる()
     {
         // 【設計の指示通り】事前に管理者ユーザーを登録しておく
         User::factory()->create([
@@ -51,7 +50,7 @@ class AdminAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function 管理者ログインで登録内容と一致しない場合はバリデーションエラーになる() 
+    public function 管理者ログインで登録内容と一致しない場合はバリデーションエラーになる()
     {
         // 【設計の指示通り】事前に管理者ユーザーを登録しておく
         User::factory()->create([

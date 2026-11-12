@@ -2,22 +2,21 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\AttendanceRecord;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\URL;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AdvancedTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * A basic feature test example.
      */
     /**
-
-    * ステップ1: 会員登録後、認証メールが送信される
+     * ステップ1: 会員登録後、認証メールが送信される
      * 1. 会員登録をする
      * 2. 認証メールを送信する（Laravelの標準機能により登録時に自動送信される）
      */
@@ -147,7 +146,7 @@ class AdvancedTest extends TestCase
         // エラー（500等）にならず、正常に表示されること
         $response->assertStatus(200);
         $response->assertViewIs('user.user-statistices-report');
-        
+
         // ビューに変数が渡されていることの確認
         $response->assertViewHas(['summary', 'monthlyTrends', 'anomalies']);
 

@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminLoginRequest; // ★自作のリクエストをインポート
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Http\Request;
 
 class AdminLoginController extends Controller
 {
-public function create()
+    public function create()
     {
         // すでに管理者としてログイン中なら、そのまま管理者ダッシュボードへ飛ばす
         if (Auth::guard('admin')->check()) {
@@ -27,10 +27,9 @@ public function create()
         $credentials = $request->only('email', 'password');
 
         // 1. まずメールとパスワードで認証を試みる
-        if (!Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) 
-        {
+        if (! Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
             //  dd('ここを通った：メールかパスワードが違います'); // ★確認1
-            
+
             throw ValidationException::withMessages([
                 'email' => ['ログイン情報が登録されていません。'],
             ]);
@@ -38,21 +37,20 @@ public function create()
 
         // 2. ★認証通ったあとに「本当に管理者権限（例: is_admin == 1）があるか？」をチェック！
         $user = Auth::guard('admin')->user();
-        if (!$user->is_admin) // 実際のカラム名に合わせて変更してください
-            {
-                // dd('ここを通った：is_admin が true ではありません。現在の値は：', $user->is_admin); // ★確認2
- 
-                // 管理者じゃなければ強制ログアウトさせる
-                Auth::guard('admin')->logout();
-                $request->session()->invalidate();
-                $request->session()->regenerateToken();
+        if (! $user->is_admin) { // 実際のカラム名に合わせて変更してください
+            // dd('ここを通った：is_admin が true ではありません。現在の値は：', $user->is_admin); // ★確認2
 
-                throw ValidationException::withMessages([
-                    'email' => ['管理者権限がありません。'],
-                ]);
-            }
+            // 管理者じゃなければ強制ログアウトさせる
+            Auth::guard('admin')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
-        $request->session()->regenerate(); 
+            throw ValidationException::withMessages([
+                'email' => ['管理者権限がありません。'],
+            ]);
+        }
+
+        $request->session()->regenerate();
 
         // dd('ここを通った：ログイン成功！本来ならリダイレクトします'); // ★確認3
 

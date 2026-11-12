@@ -2,25 +2,22 @@
 
 namespace App\Http\Middleware;
 
-use App\Http\Controllers\AdminAttendanceController;
-use App\Http\Controllers\AdminStaffController;
 use Closure;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\Response;
 
 class AdminMiddleware
 {
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         // 1. ログインしており、かつ is_admin が true（1）であるか？
-        if (Auth::guard('admin')->check() && Auth::guard('admin')->user()->is_admin) 
-        {
+        if (Auth::guard('admin')->check() && Auth::guard('admin')->user()->is_admin) {
             return $next($request); // 条件クリアならそのまま通す
         }
 

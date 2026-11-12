@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\User;
+
 return [
 
     /*
@@ -35,17 +37,17 @@ return [
     |
     */
 
-        'guards' => [
-            'web' => [
-                'driver' => 'session',
-                'provider' => 'users', // 一般用
-            ],
-
-            'admin' => [
-                'driver' => 'session',
-                'provider' => 'users', // ★管理者用も同じ 'users' プロバイダーを指定してOK！
-            ],
+    'guards' => [
+        'web' => [
+            'driver' => 'session',
+            'provider' => 'users', // 一般用
         ],
+
+        'admin' => [
+            'driver' => 'session',
+            'provider' => 'users', // ★管理者用も同じ 'users' プロバイダーを指定してOK！
+        ],
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -67,7 +69,7 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => App\Models\User::class, // 一般・管理者が共通で使うUserモデル
+            'model' => User::class, // 一般・管理者が共通で使うUserモデル
         ],
 
         // 'users' => [

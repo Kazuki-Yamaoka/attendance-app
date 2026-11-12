@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class UserAuthenticationTest extends TestCase
@@ -15,13 +14,13 @@ class UserAuthenticationTest extends TestCase
      */
 
     /** @test */
-    public function ユーザー登録で名前が未入力の場合はバリデーションエラーになる() 
+    public function ユーザー登録で名前が未入力の場合はバリデーションエラーになる()
     {
         // 1. 名前以外のユーザー情報を入力する（準備）
         // 2. 会員登録の処理を行う
         $response = $this->post('/register', [
             'name' => '', // 未入力
-            'email' => 'test@example.com', 
+            'email' => 'test@example.com',
             'password' => 'password123',
             'password_confirmation' => 'password123',
         ]);
@@ -30,7 +29,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function ユーザー登録でメールアドレスが未入力の場合はバリデーションエラーになる() 
+    public function ユーザー登録でメールアドレスが未入力の場合はバリデーションエラーになる()
     {
         // 1. メールアドレス以外のユーザー情報を入力する（準備）
         // 2. 会員登録の処理を行う
@@ -45,7 +44,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function ユーザー登録でパスワードが8文字未満の場合はバリデーションエラーになる() 
+    public function ユーザー登録でパスワードが8文字未満の場合はバリデーションエラーになる()
     {
         // 1. パスワード以外を正しく入力し、パスワードを8文字未満にする（準備）
         // 2. 会員登録の処理を行う
@@ -60,7 +59,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function ユーザー登録でパスワードが一致しない場合はバリデーションエラーになる() 
+    public function ユーザー登録でパスワードが一致しない場合はバリデーションエラーになる()
     {
         // 1. パスワードと確認用パスワードに異なる値を入力する（準備）
         // 2. 会員登録の処理を行う
@@ -75,7 +74,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function ユーザー登録でパスワードが未入力の場合はバリデーションエラーになる() 
+    public function ユーザー登録でパスワードが未入力の場合はバリデーションエラーになる()
     {
         // 1. パスワードを空にして他の情報を入力する（準備）
         // 2. 会員登録の処理を行う
@@ -90,7 +89,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function フォームに内容が入力されていた場合はデータが正常に保存される() 
+    public function フォームに内容が入力されていた場合はデータが正常に保存される()
     {
         // 1. すべてのユーザー情報を正しく入力する（準備）
         // 2. 会員登録の処理を行う
@@ -112,7 +111,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function 一般ログインでメールアドレスが未入力の場合はバリデーションエラーになる() 
+    public function 一般ログインでメールアドレスが未入力の場合はバリデーションエラーになる()
     {
         // 【設計の指示通り】事前にユーザーを登録しておく
         User::factory()->create([
@@ -129,7 +128,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function 一般ログインでパスワードが未入力の場合はバリデーションエラーになる() 
+    public function 一般ログインでパスワードが未入力の場合はバリデーションエラーになる()
     {
         // 【設計の指示通り】事前にユーザーを登録しておく
         User::factory()->create([
@@ -146,7 +145,7 @@ class UserAuthenticationTest extends TestCase
     }
 
     /** @test */
-    public function 一般ログインで登録内容と一致しない場合はバリデーションエラーになる() 
+    public function 一般ログインで登録内容と一致しない場合はバリデーションエラーになる()
     {
         // 【設計の指示通り】事前にユーザーを登録しておく
         User::factory()->create([

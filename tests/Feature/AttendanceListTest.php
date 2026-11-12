@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\AttendanceRecord;
 use App\Models\BreakTime;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AttendanceListTest extends TestCase
@@ -17,7 +16,6 @@ class AttendanceListTest extends TestCase
      * A basic feature test example.
      */
 
-    
     /** @test */
     public function 自分が行った勤怠情報が全て表示されている()
     {
@@ -63,7 +61,7 @@ class AttendanceListTest extends TestCase
         $response->assertSee($date1->format('Y/m/d'));
         $response->assertSee(Carbon::parse($attendance1->clock_in)->format('H:i'));
         $response->assertSee(Carbon::parse($attendance1->clock_out)->format('H:i'));
-        
+
         $response->assertSee($date2->format('Y/m/d'));
         $response->assertSee(Carbon::parse($attendance2->clock_in)->format('H:i'));
         $response->assertSee(Carbon::parse($attendance2->clock_out)->format('H:i'));
@@ -92,7 +90,7 @@ class AttendanceListTest extends TestCase
     {
         // 1. 勤怠情報が登録されたユーザーにログインをする
         $user = User::factory()->create();
-        
+
         // 前月のデータを複数件作成
         $previousMonth = now()->subMonth();
         $attendance1 = AttendanceRecord::create([
@@ -112,7 +110,7 @@ class AttendanceListTest extends TestCase
         $this->actingAs($user)->get('/attendance/list');
 
         // 3. 「前月」ボタンを押下する（URLに前月の年月パラメータを渡す）
-        $response = $this->actingAs($user)->get('/attendance/list?date=' . $previousMonth->format('Y-m'));
+        $response = $this->actingAs($user)->get('/attendance/list?date='.$previousMonth->format('Y-m'));
 
         // 前月の月表示および複数の勤怠情報が表示されていることを確認
         $response->assertStatus(200);
@@ -121,7 +119,7 @@ class AttendanceListTest extends TestCase
         $response->assertSee(Carbon::parse($attendance1->date)->format('Y/m/d'));
         $response->assertSee(Carbon::parse($attendance1->clock_in)->format('H:i'));
         $response->assertSee(Carbon::parse($attendance1->clock_out)->format('H:i'));
-        
+
         $response->assertSee(Carbon::parse($attendance2->date)->format('Y/m/d'));
         $response->assertSee(Carbon::parse($attendance2->clock_in)->format('H:i'));
         $response->assertSee(Carbon::parse($attendance2->clock_out)->format('H:i'));
@@ -152,16 +150,16 @@ class AttendanceListTest extends TestCase
         $this->actingAs($user)->get('/attendance/list');
 
         // 3. 「翌月」ボタンを押下する（URLに翌月の年月パラメータを渡す）
-        $response = $this->actingAs($user)->get('/attendance/list?date=' . $nextMonth->format('Y-m'));
+        $response = $this->actingAs($user)->get('/attendance/list?date='.$nextMonth->format('Y-m'));
 
         // 翌月の月表示および複数の勤怠情報が表示されていることを確認
         $response->assertStatus(200);
         $response->assertSee($nextMonth->format('Y/m'));
-        
+
         $response->assertSee(Carbon::parse($attendance1->date)->format('Y/m/d'));
         $response->assertSee(Carbon::parse($attendance1->clock_in)->format('H:i'));
         $response->assertSee(Carbon::parse($attendance1->clock_out)->format('H:i'));
-        
+
         $response->assertSee(Carbon::parse($attendance2->date)->format('Y/m/d'));
         $response->assertSee(Carbon::parse($attendance2->clock_in)->format('H:i'));
         $response->assertSee(Carbon::parse($attendance2->clock_out)->format('H:i'));
@@ -184,7 +182,7 @@ class AttendanceListTest extends TestCase
         $response->assertStatus(200);
 
         // 3. 「詳細」ボタンを押下する
-        $response = $this->actingAs($user)->get('/attendance/detail/' . $attendance->id);
+        $response = $this->actingAs($user)->get('/attendance/detail/'.$attendance->id);
 
         // 該当する日の勤怠詳細画面に正常に遷移することを確認
         $response->assertStatus(200);
@@ -205,7 +203,7 @@ class AttendanceListTest extends TestCase
         ]);
 
         // 2. 勤怠詳細ページを開く（/attendance/detail/{id}）
-        $response = $this->actingAs($user)->get('/attendance/detail/' . $attendance->id);
+        $response = $this->actingAs($user)->get('/attendance/detail/'.$attendance->id);
 
         // 3. 名前欄にログインユーザーの氏名が表示されていることを確認する
         $response->assertStatus(200);
@@ -217,21 +215,21 @@ class AttendanceListTest extends TestCase
     {
         // 1. 勤怠情報が登録されたユーザーにログインをする
         $user = User::factory()->create();
-        
+
         // データベースには date型に合わせた標準フォーマット（Y-m-d）で保存する
         $attendance = AttendanceRecord::create([
             'user_id' => $user->id,
-            'date' => '2026-10-15', 
+            'date' => '2026-10-15',
             'clock_in' => '09:00:00',
             'clock_out' => '18:00:00',
         ]);
 
         // 2. 勤怠詳細ページを開く
-        $response = $this->actingAs($user)->get('/attendance/detail/' . $attendance->id);
+        $response = $this->actingAs($user)->get('/attendance/detail/'.$attendance->id);
 
         // 3. 勤怠詳細画面のステータスと、画面に表示されている日付の文字列を確認する
         $response->assertStatus(200);
-        
+
         // コントローラー側で Y年 と n月j日 に変換されてビューに渡されているため、
         // 画面上にそれぞれの文字列が存在するかを assertSee で確認する
         $response->assertSee('2026年');
@@ -251,7 +249,7 @@ class AttendanceListTest extends TestCase
         ]);
 
         // 2. 勤怠詳細ページを開く
-        $response = $this->actingAs($user)->get('/attendance/detail/' . $attendance->id);
+        $response = $this->actingAs($user)->get('/attendance/detail/'.$attendance->id);
 
         // 3. 出勤・退勤欄に記録された時間が表示されていることを確認する
         $response->assertStatus(200);
@@ -279,13 +277,11 @@ class AttendanceListTest extends TestCase
         ]);
 
         // 2. 勤怠詳細ページを開く
-        $response = $this->actingAs($user)->get('/attendance/detail/' . $attendance->id);
+        $response = $this->actingAs($user)->get('/attendance/detail/'.$attendance->id);
 
         // 3. 休憩欄に記録された時間（休憩入・休憩戻）が表示されていることを確認する
         $response->assertStatus(200);
         $response->assertSee('12:00');
         $response->assertSee('13:00');
     }
-
-    
 }

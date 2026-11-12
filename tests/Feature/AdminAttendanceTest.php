@@ -2,20 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\AttendanceRecord;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AdminAttendanceTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * A basic feature test example.
      */
-/**
+    /**
      * 1. その日になされた全ユーザーの勤怠情報が正確に確認できること
      */
     public function test_admin_can_see_all_users_attendance_records_accurately()
@@ -116,7 +116,7 @@ class AdminAttendanceTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         // 前日のパラメータを指定してアクセス
-        $response = $this->get('/admin/attendance/list?date=' . $previousDate->toDateString());
+        $response = $this->get('/admin/attendance/list?date='.$previousDate->toDateString());
 
         $response->assertStatus(200);
         // 前日の日付と、その日のスタッフの勤怠情報が表示されていることを確認
@@ -154,7 +154,7 @@ class AdminAttendanceTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         // 翌日のパラメータを指定してアクセス
-        $response = $this->get('/admin/attendance/list?date=' . $nextDate->toDateString());
+        $response = $this->get('/admin/attendance/list?date='.$nextDate->toDateString());
 
         $response->assertStatus(200);
         // 翌日の日付と、その日のスタッフの勤怠情報が表示されていることを確認

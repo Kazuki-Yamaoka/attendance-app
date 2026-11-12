@@ -6,7 +6,7 @@ use App\Models\AttendanceCorrection;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\AttendanceCorrection>
+ * @extends Factory<AttendanceCorrection>
  */
 class AttendanceCorrectionFactory extends Factory
 {

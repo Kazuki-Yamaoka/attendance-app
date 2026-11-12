@@ -9,9 +9,9 @@ use App\Http\Requests\Api\V1\UpdateAttendanceRecordRequest;
 use App\Http\Resources\AttendanceRecordResource;
 use App\Models\AttendanceRecord;
 use Carbon\Carbon;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Http\Request;
 
 class AttendanceRecordController extends Controller
 {
@@ -31,13 +31,13 @@ class AttendanceRecordController extends Controller
         $query->when($request->input('user_id'), function ($q, $userId) {
             $q->where('user_id', $userId);
         })
-        ->when($request->input('date'), function ($q, $date) {
-            $q->whereDate('date', $date);
-        })
-        ->when($request->input('month'), function ($q, $month) {
-            $q->whereYear('date', '=', date('Y', strtotime($month)))
-              ->whereMonth('date', '=', date('m', strtotime($month)));
-        });
+            ->when($request->input('date'), function ($q, $date) {
+                $q->whereDate('date', $date);
+            })
+            ->when($request->input('month'), function ($q, $month) {
+                $q->whereYear('date', '=', date('Y', strtotime($month)))
+                    ->whereMonth('date', '=', date('m', strtotime($month)));
+            });
 
         // 3. ページネーションの件数取得
         $perPage = $request->input('per_page', 20);
@@ -49,6 +49,7 @@ class AttendanceRecordController extends Controller
         $attendanceRecord_records->getCollection()->transform(function ($record) {
             $record->calculated_total_time = $this->calculateTotalTime($record);
             $record->calculated_total_break_time = $this->calculateTotalBreakTime($record);
+
             return $record;
         });
 
@@ -56,7 +57,7 @@ class AttendanceRecordController extends Controller
         return AttendanceRecordResource::collection($attendanceRecord_records);
     }
 
-/**
+    /**
      * 勤怠詳細取得API
      */
     public function show(string $id): AttendanceRecordResource|JsonResponse
@@ -64,9 +65,9 @@ class AttendanceRecordController extends Controller
         // 1. まずIDでモデルを取得（見つからない場合はカスタムJSONを返す）
         $attendanceRecord = AttendanceRecord::find($id);
 
-        if (!$attendanceRecord) {
+        if (! $attendanceRecord) {
             return response()->json([
-                'error' => '勤怠情報が見つかりませんでした。'
+                'error' => '勤怠情報が見つかりませんでした。',
             ], 404);
         }
 
@@ -82,7 +83,7 @@ class AttendanceRecordController extends Controller
      */
     private function calculateTotalTime(AttendanceRecord $record): ?string
     {
-        if (!$record->clock_in || !$record->clock_out) {
+        if (! $record->clock_in || ! $record->clock_out) {
             return null;
         }
 
@@ -137,11 +138,11 @@ class AttendanceRecordController extends Controller
 
         // datetime 型のカラムに合わせて日付と時間を結合する場合
         if (isset($validatedData['clock_in'])) {
-            $validatedData['clock_in'] = $validatedData['date'] . ' ' . $validatedData['clock_in'];
+            $validatedData['clock_in'] = $validatedData['date'].' '.$validatedData['clock_in'];
         }
 
         if (isset($validatedData['clock_out'])) {
-            $validatedData['clock_out'] = $validatedData['date'] . ' ' . $validatedData['clock_out'];
+            $validatedData['clock_out'] = $validatedData['date'].' '.$validatedData['clock_out'];
         }
 
         // 1. 勤怠レコードを作成
@@ -163,16 +164,16 @@ class AttendanceRecordController extends Controller
     // 引数を $id から AttendanceRecord $attendanceRecord に変更する
     public function update(UpdateAttendanceRecordRequest $request, AttendanceRecord $attendanceRecord): JsonResponse
     {
-        // ルートモデル結合を使っていれば、存在しないIDの場合は自動的に 
+        // ルートモデル結合を使っていれば、存在しないIDの場合は自動的に
         // 404（ModelNotFoundException）がスローされます。
         // （以前 Handler.php で api/* のときは 404 JSON を返す設定にしたはずなので、自動で意図したJSONになります）
 
         // 2. ポリシーによる認可チェック
         try {
             $this->authorize('update', $attendanceRecord);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        } catch (AuthorizationException $e) {
             return response()->json([
-                'error' => 'この操作を実行する権限がありません。'
+                'error' => 'この操作を実行する権限がありません。',
             ], 403);
         }
 
@@ -183,11 +184,11 @@ class AttendanceRecordController extends Controller
         $targetDate = $validatedData['date'] ?? $attendanceRecord->date;
 
         if (isset($validatedData['clock_in'])) {
-            $validatedData['clock_in'] = $targetDate . ' ' . $validatedData['clock_in'];
+            $validatedData['clock_in'] = $targetDate.' '.$validatedData['clock_in'];
         }
 
         if (isset($validatedData['clock_out'])) {
-            $validatedData['clock_out'] = $targetDate . ' ' . $validatedData['clock_out'];
+            $validatedData['clock_out'] = $targetDate.' '.$validatedData['clock_out'];
         }
 
         // 4. レコードの更新
@@ -210,18 +211,18 @@ class AttendanceRecordController extends Controller
         // 1. 指定されたIDの勤怠データを取得（存在しない場合は404とカスタムJSONを返す）
         $attendanceRecord = AttendanceRecord::find($id);
 
-        if (!$attendanceRecord) {
+        if (! $attendanceRecord) {
             return response()->json([
-                'error' => '勤怠情報が見つかりませんでした。'
+                'error' => '勤怠情報が見つかりませんでした。',
             ], 404);
         }
 
         // 2. ポリシーによる認可チェック（他ユーザーの削除などを防ぐ）
         try {
             $this->authorize('delete', $attendanceRecord);
-        } catch (\Illuminate\Auth\Access\AuthorizationException $e) {
+        } catch (AuthorizationException $e) {
             return response()->json([
-                'error' => 'この操作を実行する権限がありません。'
+                'error' => 'この操作を実行する権限がありません。',
             ], 403);
         }
 

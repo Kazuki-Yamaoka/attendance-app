@@ -1,15 +1,16 @@
 <?php
 
+use App\Http\Controllers\AdminAttendanceController;
+use App\Http\Controllers\AdminStaffController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\AttendanceReportController;
-use App\Http\Controllers\AdminAttendanceController;
-use App\Http\Controllers\AdminStaffController;
-use App\Http\Controllers\Auth\UserLoginController;
 use App\Http\Controllers\Auth\AdminLoginController;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\UserLoginController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -21,6 +22,10 @@ use Illuminate\Http\Request;
 | be assigned to the "web" middleware group. Make something great!
 |
 */
+
+Route::get('/', function () {
+    return view('welcome');
+});
 
 // 2. メール認証誘導画面
 Route::get('/email/verify', function () {
@@ -37,17 +42,18 @@ Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $requ
 // ★認証メール再送機能のルート
 Route::post('/email/verification-notification', function (Request $request) {
     $request->user()->sendEmailVerificationNotification();
+
     return back()->with('message', '認証メールを再送しました！');
 })->middleware(['auth', 'throttle:6,1'])->name('verification.send');
 
-
 // --- 【一般ユーザー用】 ---
 Route::middleware('guest')->group(function () {
+    Route::get('/register', [RegisteredUserController::class, 'create'])->name('register');
+    Route::post('/register', [RegisteredUserController::class, 'store']);
     Route::get('/login', [UserLoginController::class, 'create'])->name('login');
     Route::post('/login', [UserLoginController::class, 'store']);
 });
 
-// 仮ルート（Chapter 4で本実装に置き換え）
 Route::middleware('auth', 'verified')->group(function () {
     Route::get('/attendance', [AttendanceController::class, 'index'])->name('attendance.index');
     Route::post('/attendance', [AttendanceController::class, 'store'])->name('attendance.store');
@@ -58,14 +64,11 @@ Route::middleware('auth', 'verified')->group(function () {
     Route::get('/attendance/report', [AttendanceReportController::class, 'index'])->name('report.index');
 });
 
-
 // --- 【管理者用】 ---
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [AdminLoginController::class, 'create'])->name('admin.login');
     Route::post('/admin/login', [AdminLoginController::class, 'store']);
 });
-
-// （参考）管理者専用エリアのミドルウェア保護などはここにぶら下げる
 
 Route::middleware('admin')->group(function () {
     Route::get('/admin/attendance/list', [AdminAttendanceController::class, 'index'])->name('admin.attendance.index');
@@ -83,4 +86,4 @@ Route::middleware('admin')->group(function () {
 });
 
 // 申請一覧画面（一般・管理者共通、認証はコントローラーで設定済み）
-Route::get('/stamp_correction_request/list', [AttendanceCorrectionController::class, 'index'])->name('application.index');
+Route::get('/stamp_correction_request/list', [AttendanceCorrectionController::class, 'index'])->middleware('auth:web,admin')->name('application.index');
