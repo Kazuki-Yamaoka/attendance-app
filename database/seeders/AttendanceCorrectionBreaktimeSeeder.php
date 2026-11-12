@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 
 class AttendanceCorrectionBreaktimeSeeder extends Seeder
 {
-/**
+    /**
      * Run the database seeds.
      */
     public function run(): void

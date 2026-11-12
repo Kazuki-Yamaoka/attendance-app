@@ -110,27 +110,26 @@ class AdvancedTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 別日で勤怠データを複数日作成（例：昨日と今日）
         AttendanceRecord::create([
             'user_id' => $user->id,
-            'date' => now()->subDay()->toDateString(), // 昨日
+            'date' => now()->subDay()->toDateString(),
             'clock_in' => '09:00:00',
             'clock_out' => '18:00:00',
         ]);
 
         AttendanceRecord::create([
             'user_id' => $user->id,
-            'date' => now()->toDateString(), // 今日
+            'date' => now()->toDateString(),
             'clock_in' => '09:00:00',
             'clock_out' => '19:00:00',
         ]);
 
-        // 認証状態で GET /attendance/report を実行
         $response = $this->actingAs($user)->get('/attendance/report');
 
         $response->assertStatus(200);
-        $response->assertViewIs('user.user-statistices-report'); // 指定されたビュー名
-        $response->assertViewHas(['summary', 'monthlyTrends', 'anomalies']);
+        $response->assertViewIs('reports.index');
+        // monthlyTrends から monthlyTrend（単数形）に変更
+        $response->assertViewHas(['summary', 'monthlyTrend', 'anomalies']);
     }
 
     /**
@@ -140,18 +139,12 @@ class AdvancedTest extends TestCase
     {
         $user = User::factory()->create();
 
-        // 勤怠データのないユーザーで認証して GET /attendance/report を実行
         $response = $this->actingAs($user)->get('/attendance/report');
 
-        // エラー（500等）にならず、正常に表示されること
         $response->assertStatus(200);
-        $response->assertViewIs('user.user-statistices-report');
-
-        // ビューに変数が渡されていることの確認
-        $response->assertViewHas(['summary', 'monthlyTrends', 'anomalies']);
-
-        // 必要に応じて、データが0（または空っぽ）になっていることをビュー内の値や構造で確認
-        // 例: サマリーの合計時間が "0h 0m" や 0 になっているか等、ビューの表示に合わせた検証を追加できます
-        $response->assertSee('0h 0m'); // 0時間として表示されている場合の例
+        $response->assertViewIs('reports.index');
+        // monthlyTrends から monthlyTrend（単数形）に変更
+        $response->assertViewHas(['summary', 'monthlyTrend', 'anomalies']);
+        $response->assertSee('0h 0m');
     }
 }
