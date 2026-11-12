@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\UserLoginRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Http\Request;
 
 class UserLoginController extends Controller
 {
@@ -19,14 +18,13 @@ class UserLoginController extends Controller
     {
         $credentials = $request->only('email', 'password');
 
-        if (!Auth::attempt($credentials, $request->boolean('remember'))) 
-        {
+        if (! Auth::attempt($credentials, $request->boolean('remember'))) {
             throw ValidationException::withMessages([
                 'email' => ['ログイン情報が登録されていません。'],
             ]);
-        }   
+        }
 
-        $request->session()->regenerate(); 
+        $request->session()->regenerate();
 
         return redirect()->intended('/attendance'); // ログイン成功時
     }

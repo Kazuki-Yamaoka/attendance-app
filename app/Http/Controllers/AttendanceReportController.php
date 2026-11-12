@@ -10,8 +10,11 @@ use Illuminate\Support\Facades\Auth;
 class AttendanceReportController extends Controller
 {
     private const STANDARD_WORK_MINUTES = 480; // 8時間 = 480分
+
     private const LONG_WORK_MINUTES = 600;     // 10時間 = 600分
+
     private const WORK_START_TIME = '09:00:00';
+
     private const WORK_END_TIME = '18:00:00';
 
     /**
@@ -34,10 +37,10 @@ class AttendanceReportController extends Controller
 
         // 各種計算処理をprivateメソッドに委譲
         $summary = $this->calculateSummary($records);
-        $monthlyTrends = $this->calculateMonthlyTrends($records, $now);
+        $monthlyTrend = $this->calculateMonthlyTrends($records, $now); // ビューの変数名 $monthlyTrend に合わせる
         $anomalies = $this->calculateAnomalies($records, $now);
 
-        return view('user.user-statistices-report', compact('summary', 'monthlyTrends', 'anomalies'));
+        return view('reports.index', compact('summary', 'monthlyTrend', 'anomalies'));
     }
 
     /**
@@ -61,12 +64,13 @@ class AttendanceReportController extends Controller
             }
         }
 
-        $avgMinutes = $workedDaysCount > 0 ? (int)round($totalMinutes / $workedDaysCount) : 0;
+        $avgMinutes = $workedDaysCount > 0 ? (int) round($totalMinutes / $workedDaysCount) : 0;
 
+        // ビュー側で floor(... / 60) で計算できるように、分単位の数値を返す
         return [
-            'total_hours' => $this->formatHoursAndMinutes($totalMinutes),
-            'overtime_hours' => $this->formatHoursAndMinutes($totalOvertimeMinutes),
-            'average_hours' => $this->formatHoursAndMinutes($avgMinutes),
+            'total_work_minutes' => $totalMinutes,
+            'total_overtime_minutes' => $totalOvertimeMinutes,
+            'avg_work_minutes' => $avgMinutes,
         ];
     }
 
@@ -82,7 +86,7 @@ class AttendanceReportController extends Controller
             $mStart = $targetMonth->copy()->startOfMonth();
             $mEnd = $targetMonth->copy()->endOfMonth();
 
-            $monthRecords = $records->filter(fn($item) => Carbon::parse($item->date)->between($mStart, $mEnd));
+            $monthRecords = $records->filter(fn ($item) => Carbon::parse($item->date)->between($mStart, $mEnd));
 
             $mTotalMin = 0;
             $mOverMin = 0;
@@ -97,10 +101,11 @@ class AttendanceReportController extends Controller
                 }
             }
 
+            // ビュー側のキー名（work_minutes, overtime_minutes）に合わせる
             $monthlyTrends[] = [
                 'month' => $targetMonth->format('Y-m'),
-                'total_hours' => $this->formatHoursAndMinutes($mTotalMin),
-                'overtime_hours' => $this->formatHoursAndMinutes($mOverMin),
+                'work_minutes' => $mTotalMin,
+                'overtime_minutes' => $mOverMin,
             ];
         }
 
@@ -114,8 +119,8 @@ class AttendanceReportController extends Controller
     {
         $thisMonthStart = $now->copy()->startOfMonth();
         $thisMonthEnd = $now->copy()->endOfMonth();
-        
-        $thisMonthRecords = $records->filter(fn($item) => Carbon::parse($item->date)->between($thisMonthStart, $thisMonthEnd));
+
+        $thisMonthRecords = $records->filter(fn ($item) => Carbon::parse($item->date)->between($thisMonthStart, $thisMonthEnd));
 
         $lateCount = 0;
         $earlyLeaveCount = 0;
@@ -151,28 +156,18 @@ class AttendanceReportController extends Controller
      */
     private function calculateNetWorkMinutes($record): ?int
     {
-        if (!$record->clock_in || !$record->clock_out) {
+        if (! $record->clock_in || ! $record->clock_out) {
             return null;
         }
 
         $workMinutes = Carbon::parse($record->clock_in)->diffInMinutes(Carbon::parse($record->clock_out));
-        
+
         $breakMinutes = $record->breakTimes->sum(function ($b) {
-            return ($b->break_in && $b->break_out) 
-                ? Carbon::parse($b->break_in)->diffInMinutes(Carbon::parse($b->break_out)) 
+            return ($b->break_in && $b->break_out)
+                ? Carbon::parse($b->break_in)->diffInMinutes(Carbon::parse($b->break_out))
                 : 0;
         });
 
         return max(0, $workMinutes - $breakMinutes);
-    }
-
-    /**
-     * 共通: 分単位を「XXh YYm」形式にフォーマットする
-     */
-    private function formatHoursAndMinutes(int $minutes): string
-    {
-        $h = floor($minutes / 60);
-        $m = $minutes % 60;
-        return "{$h}h {$m}m";
     }
 }

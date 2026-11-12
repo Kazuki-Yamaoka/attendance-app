@@ -4,13 +4,13 @@ namespace Database\Seeders;
 
 use App\Models\AttendanceCorrection;
 use App\Models\AttendanceCorrectionBreaktime;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
-use Illuminate\Database\Seeder;
+use App\Models\BreakTime;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class AttendanceCorrectionBreaktimeSeeder extends Seeder
 {
-    /**
+/**
      * Run the database seeds.
      */
     public function run(): void
@@ -19,8 +19,7 @@ class AttendanceCorrectionBreaktimeSeeder extends Seeder
         $corrections = AttendanceCorrection::all();
 
         foreach ($corrections as $correction) {
-            // 50%の確率で「休憩時間を追加する（開始・終了をセットで登録）」
-            // 残りの50%は「何もしない（休憩修正データは作成しない）」
+            // 50%の確率で「休憩時間を追加・修正する」
             if (rand(0, 1) === 1) {
                 // 関連する attendanceRecord から日付を取得
                 $dateStr = Carbon::parse($correction->attendanceRecord->date)->format('Y-m-d');
@@ -31,15 +30,35 @@ class AttendanceCorrectionBreaktimeSeeder extends Seeder
                 $breakOutHour = $breakInHour + 1; // 1時間後を終了時間とする
                 $breakOutMin = $breakInMin;
 
-                $newBreakIn = "{$dateStr} " . sprintf('%02d:%02d:00', $breakInHour, $breakInMin);
-                $newBreakOut = "{$dateStr} " . sprintf('%02d:%02d:00', $breakOutHour, $breakOutMin);
+                $newBreakIn = "{$dateStr} ".sprintf('%02d:%02d:00', $breakInHour, $breakInMin);
+                $newBreakOut = "{$dateStr} ".sprintf('%02d:%02d:00', $breakOutHour, $breakOutMin);
 
-                // 休憩修正（子）テーブルに「開始・終了のセット」で登録
-                AttendanceCorrectionBreaktime::create([
-                    'attendance_correction_id' => $correction->id,
-                    'new_break_in'             => $newBreakIn,
-                    'new_break_out'            => $newBreakOut,
-                ]);
+                // 1. 休憩修正（子）テーブルに登録
+                $correctionBreak = AttendanceCorrectionBreaktime::updateOrCreate(
+                    [
+                        'attendance_correction_id' => $correction->id,
+                    ],
+                    [
+                        'new_break_in' => $newBreakIn,
+                        'new_break_out' => $newBreakOut,
+                    ]
+                );
+
+                // 2. ★ 修正申請（$correction）のステータスが「承認済み」の場合、
+                // 大元の勤怠に紐づく実際の休憩テーブル（例: Breaktime）にも反映させる
+                if ($correction->approval_status === '承認済み') {
+                    // ※ 実際の休憩テーブルのモデル名（Breaktime等）に合わせて調整してください
+                    BreakTime::updateOrCreate(
+                        [
+                            'attendance_record_id' => $correction->attendance_record_id,
+                            // 必要に応じてどの休憩に対応するかを識別するキーがあればここに指定
+                        ],
+                        [
+                            'break_in' => $newBreakIn,
+                            'break_out' => $newBreakOut,
+                        ]
+                    );
+                }
             }
         }
     }

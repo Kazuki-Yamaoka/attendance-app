@@ -2,24 +2,22 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
-use App\Models\AttendanceRecord;
 use App\Models\AttendanceCorrection;
-use App\Models\BreakTime;
+use App\Models\AttendanceRecord;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AdminAttendanceCorrectionTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * A basic feature test example.
      */
     /**
-    
-    * テスト用ユーザー（管理者・一般）と勤怠レコードを作成する共通セットアップ
+     * テスト用ユーザー（管理者・一般）と勤怠レコードを作成する共通セットアップ
      */
     private function createTestTargetData()
     {
@@ -27,11 +25,11 @@ class AdminAttendanceCorrectionTest extends TestCase
         $admin = User::factory()->create([
             'is_admin' => true,
         ]);
-        
+
         $user = User::factory()->create([
             'is_admin' => false, // 一般ユーザー
         ]);
-        
+
         $attendance = AttendanceRecord::create([
             'user_id' => $user->id,
             'date' => Carbon::today()->format('Y-m-d'),
@@ -51,7 +49,7 @@ class AdminAttendanceCorrectionTest extends TestCase
 
         // 1. 管理者ユーザーにログインをする（adminガード）
         // 2. 勤怠詳細ページを開く (admin/attendance/{id})
-        $response = $this->actingAs($admin, 'admin')->get('admin/attendance/' . $attendance->id);
+        $response = $this->actingAs($admin, 'admin')->get('admin/attendance/'.$attendance->id);
 
         // 3. 画面が正常に表示され、選択したレコードのデータが反映されていることを確認
         $response->assertStatus(200);
@@ -70,10 +68,10 @@ class AdminAttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細ページを開く (admin/attendance/{id})
         // 3. 出勤時間を退勤時間より後に設定する
         // 4. 保存処理をする
-        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/' . $attendance->id, [
-            'new_clock_in'  => '19:00', // 退勤(18:00)より後
+        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/'.$attendance->id, [
+            'new_clock_in' => '19:00', // 退勤(18:00)より後
             'new_clock_out' => '18:00',
-            'comment'       => '管理者修正テスト理由',
+            'comment' => '管理者修正テスト理由',
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -93,12 +91,12 @@ class AdminAttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細ページを開く (admin/attendance/{id})
         // 3. 休憩開始時間を退勤時間より後に設定する
         // 4. 保存処理をする
-        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/' . $attendance->id, [
-            'new_clock_in'  => '09:00',
+        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/'.$attendance->id, [
+            'new_clock_in' => '09:00',
             'new_clock_out' => '18:00',
-            'new_break_in'  => ['19:00'], // 退勤(18:00)より後
+            'new_break_in' => ['19:00'], // 退勤(18:00)より後
             'new_break_out' => ['19:30'],
-            'comment'       => '管理者修正テスト理由',
+            'comment' => '管理者修正テスト理由',
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -118,12 +116,12 @@ class AdminAttendanceCorrectionTest extends TestCase
         // 2. 勤怠詳細ページを開く (admin/attendance/{id})
         // 3. 休憩終了時間を退勤時間より後に設定する
         // 4. 保存処理をする
-        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/' . $attendance->id, [
-            'new_clock_in'  => '09:00',
+        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/'.$attendance->id, [
+            'new_clock_in' => '09:00',
             'new_clock_out' => '18:00',
-            'new_break_in'  => ['12:00'],
+            'new_break_in' => ['12:00'],
             'new_break_out' => ['19:00'], // 退勤(18:00)より後
-            'comment'       => '管理者修正テスト理由',
+            'comment' => '管理者修正テスト理由',
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -142,10 +140,10 @@ class AdminAttendanceCorrectionTest extends TestCase
         // 1. 管理者ユーザーにログインをする（adminガード）
         // 2. 勤怠詳細ページを開く (admin/attendance/{id})
         // 3. 備考欄を未入力のまま保存処理をする
-        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/' . $attendance->id, [
-            'new_clock_in'  => '09:00',
+        $response = $this->actingAs($admin, 'admin')->post('admin/attendance/'.$attendance->id, [
+            'new_clock_in' => '09:00',
             'new_clock_out' => '18:00',
-            'comment'       => '', // 未入力
+            'comment' => '', // 未入力
         ]);
 
         // バリデーションエラーメッセージがセッションに含まれていることを検証
@@ -163,10 +161,10 @@ class AdminAttendanceCorrectionTest extends TestCase
 
         AttendanceCorrection::create([
             'attendance_record_id' => $attendance->id,
-            'new_clock_in'         => '10:00:00',
-            'new_clock_out'        => '19:00:00',
-            'comment'              => '承認待ちのテスト理由',
-            'approval_status'      => '承認待ち',
+            'new_clock_in' => '10:00:00',
+            'new_clock_out' => '19:00:00',
+            'comment' => '承認待ちのテスト理由',
+            'approval_status' => '承認待ち',
         ]);
 
         // 1. 管理者ユーザーにログインをする
@@ -186,10 +184,10 @@ class AdminAttendanceCorrectionTest extends TestCase
 
         AttendanceCorrection::create([
             'attendance_record_id' => $attendance->id,
-            'new_clock_in'         => '10:00:00',
-            'new_clock_out'        => '19:00:00',
-            'comment'              => '承認済みのテスト理由',
-            'approval_status'      => '承認済み',
+            'new_clock_in' => '10:00:00',
+            'new_clock_out' => '19:00:00',
+            'comment' => '承認済みのテスト理由',
+            'approval_status' => '承認済み',
         ]);
 
         // 1. 管理者ユーザーにログインをする
@@ -209,15 +207,15 @@ class AdminAttendanceCorrectionTest extends TestCase
 
         $correction = AttendanceCorrection::create([
             'attendance_record_id' => $attendance->id,
-            'new_clock_in'         => '10:00:00',
-            'new_clock_out'        => '19:00:00',
-            'comment'              => '詳細確認用の理由',
-            'approval_status'      => '承認待ち',
+            'new_clock_in' => '10:00:00',
+            'new_clock_out' => '19:00:00',
+            'comment' => '詳細確認用の理由',
+            'approval_status' => '承認待ち',
         ]);
 
         // 1. 管理者ユーザーにログインをする
         // 2. 修正申請の詳細画面を開く (/stamp_correction_request/approve/{id})
-        $response = $this->actingAs($admin, 'admin')->get('/stamp_correction_request/approve/' . $correction->id);
+        $response = $this->actingAs($admin, 'admin')->get('/stamp_correction_request/approve/'.$correction->id);
 
         $response->assertStatus(200);
         $response->assertSee('詳細確認用の理由');
@@ -236,15 +234,15 @@ class AdminAttendanceCorrectionTest extends TestCase
 
         $correction = AttendanceCorrection::create([
             'attendance_record_id' => $attendance->id,
-            'new_clock_in'         => '10:00:00',
-            'new_clock_out'        => '19:00:00',
-            'comment'              => '承認処理テスト',
-            'approval_status'      => '承認待ち',
+            'new_clock_in' => '10:00:00',
+            'new_clock_out' => '19:00:00',
+            'comment' => '承認処理テスト',
+            'approval_status' => '承認待ち',
         ]);
 
         // 1. 管理者ユーザーにログインをする
         // 2. 修正申請の詳細画面で「承認」ボタンを押す（POSTリクエスト：パラメータ不要でIDのみで処理）
-        $response = $this->actingAs($admin, 'admin')->post('/stamp_correction_request/approve/' . $correction->id);
+        $response = $this->actingAs($admin, 'admin')->post('/stamp_correction_request/approve/'.$correction->id);
 
         // 3. データベースの検証
         // ① 修正申請のステータスが「承認済み」に変更されていること
@@ -261,7 +259,7 @@ class AdminAttendanceCorrectionTest extends TestCase
         ]);
 
         // 4. 承認済みの詳細画面に再度アクセスした際、「承認済み」と表示され「承認」ボタンが表示されないことの確認
-        $approvedDetailResponse = $this->actingAs($admin, 'admin')->get('/stamp_correction_request/approve/' . $correction->id);
+        $approvedDetailResponse = $this->actingAs($admin, 'admin')->get('/stamp_correction_request/approve/'.$correction->id);
         $approvedDetailResponse->assertStatus(200);
         $approvedDetailResponse->assertSee('承認済み');
         $approvedDetailResponse->assertDontSee('class="applied-form__button--submit"'); // 承認ボタンが消えていること

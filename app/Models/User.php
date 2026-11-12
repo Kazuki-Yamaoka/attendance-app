@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use App\Models\AttendanceRecord;
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail; // 追加
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -66,7 +64,7 @@ class User extends Authenticatable implements MustVerifyEmail
         $todayRecord = $this->todayAttendance();
 
         // 1. レコードがない、または出勤してない ＝ 勤務外
-        if (!$todayRecord || !$todayRecord->clock_in) {
+        if (! $todayRecord || ! $todayRecord->clock_in) {
             return '勤務外';
         }
 
@@ -78,7 +76,7 @@ class User extends Authenticatable implements MustVerifyEmail
         // 3. 休憩テーブル（break_times）を確認する
         // 最新の休憩レコードを取得し、休憩中でまだ戻っていない（break_outがnull）ものがあるかチェック
         $latestBreak = $todayRecord->breakTimes()->latest('id')->first();
-        if ($latestBreak && $latestBreak->break_in && !$latestBreak->break_out) {
+        if ($latestBreak && $latestBreak->break_in && ! $latestBreak->break_out) {
             return '休憩中';
         }
 

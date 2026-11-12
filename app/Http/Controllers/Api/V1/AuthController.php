@@ -16,9 +16,9 @@ class AuthController extends Controller
         ]);
 
         // 認証チェック
-        if (!Auth::attempt($credentials)) {
+        if (! Auth::attempt($credentials)) {
             return response()->json([
-                'message' => 'メールアドレスまたはパスワードが正しくありません。'
+                'message' => 'メールアドレスまたはパスワードが正しくありません。',
             ], 401);
         }
 

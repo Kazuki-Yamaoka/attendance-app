@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\AttendanceRecord;
+use App\Http\Requests\AttendanceCorrectionRequest;
 use App\Models\AttendanceCorrection;
 use App\Models\AttendanceCorrectionBreaktime;
+use App\Models\AttendanceRecord;
 use App\Models\BreakTime;
-use App\Http\Requests\AttendanceRequest;
-use App\Http\Requests\AttendanceCorrectionRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +14,7 @@ use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
-     public function index()
+    public function index()
     {
         $user = Auth::user(); // ログイン中のユーザー情報を取得
 
@@ -29,16 +28,16 @@ class AttendanceController extends Controller
         // ③ compact関数やwithを使って、ビューにまとめて変数を送る
         return view('user.attendance-register', compact('user', 'formattedDate', 'formattedTime'));
     }
-    
+
     // 総合窓口（振り付け役）：ボタンの合言葉を見て、対応するメソッドを呼び出す
     public function store(Request $request)
     {
         return match ($request->input('action')) {
-            'clock_in'  => $this->storeClockIn($request),
+            'clock_in' => $this->storeClockIn($request),
             'clock_out' => $this->storeClockOut($request),
-            'break_in'  => $this->storeBreakIn($request),
+            'break_in' => $this->storeBreakIn($request),
             'break_out' => $this->storeBreakOut($request),
-            default     => abort(400),
+            default => abort(400),
         };
     }
 
@@ -64,7 +63,7 @@ class AttendanceController extends Controller
             ->first();
 
         // ② もし「未退勤のレコードがそもそも無いのに退勤ボタンが押された」場合（不正や2回押し）
-        if (!$record) {
+        if (! $record) {
             return redirect()->back()->with('error', 'すでに退勤済みか、出勤していません。');
         }
 
@@ -99,20 +98,19 @@ class AttendanceController extends Controller
             ->latest('id')
             ->first();
 
-        
         $breakTime = BreakTime::where('attendance_record_id', $record->id)
             ->whereNull('break_out')
             ->latest()
             ->first();
 
         // ② もし「未退勤のレコードがそもそも無いのに退勤ボタンが押された」場合（不正や2回押し）
-        if (!$breakTime) {
+        if (! $breakTime) {
             return redirect()->back()->with('error', 'すでに休憩終了済みか、休憩開始していません。');
         }
-            
-            $breakTime->update([
-                'break_out' => Carbon::now(),
-            ]);
+
+        $breakTime->update([
+            'break_out' => Carbon::now(),
+        ]);
 
         return redirect()->back();
     }
@@ -127,8 +125,8 @@ class AttendanceController extends Controller
         $user = Auth::user();
 
         // 基準日と月の前後の取得
-        $date = $request->input('date') 
-            ? Carbon::parse($request->input('date')) 
+        $date = $request->input('date')
+            ? Carbon::parse($request->input('date'))
             : Carbon::now();
 
         $previousMonth = $date->copy()->subMonth()->format('Y-m');
@@ -164,7 +162,6 @@ class AttendanceController extends Controller
         ));
     }
 
-
     // ==========================================
     // 2. プライベートメソッド（部品としての切り出し）
     // ==========================================
@@ -192,8 +189,8 @@ class AttendanceController extends Controller
             // 勤務時間の合計（分）を計算
             if ($record->clock_in && $record->clock_out) {
                 $totalWorkMinutes = $this->calculateTotalWorkMinutes(
-                    $record->clock_in, 
-                    $record->clock_out, 
+                    $record->clock_in,
+                    $record->clock_out,
                     $totalBreakMinutes
                 );
                 $totalTimeFormatted = $this->formatMinutesToHours($totalWorkMinutes);
@@ -232,7 +229,7 @@ class AttendanceController extends Controller
     private function calculateTotalWorkMinutes(string $clockIn, string $clockOut, int $breakMinutes): int
     {
         $workMinutes = Carbon::parse($clockIn)->diffInMinutes(Carbon::parse($clockOut));
-        
+
         // 全体時間から休憩時間を引く（マイナスにならないよう max(0, ...)）
         return max(0, $workMinutes - $breakMinutes);
     }
@@ -266,8 +263,8 @@ class AttendanceController extends Controller
                 'breakTimes',
                 'attendanceCorrections' => function ($query) {
                     $query->where('approval_status', '承認待ち')
-                          ->with('attendanceCorrectionBreaktimes');
-                }
+                        ->with('attendanceCorrectionBreaktimes');
+                },
             ])
             ->findOrFail($id);
 
@@ -277,7 +274,7 @@ class AttendanceController extends Controller
         $pendingApplication = $attendanceRecord->attendanceCorrections->first();
 
         // 3. 承認待ちの申請が存在するかどうかで表示データを切り替える
-        $isPending = !is_null($pendingApplication);
+        $isPending = ! is_null($pendingApplication);
 
         $targetClockIn = $isPending ? $pendingApplication->new_clock_in : $attendanceRecord->clock_in;
         $targetClockOut = $isPending ? $pendingApplication->new_clock_out : $attendanceRecord->clock_out;
@@ -313,52 +310,51 @@ class AttendanceController extends Controller
         return view('user.user-detail', compact('user', 'data', 'attendanceRecord'));
     }
 
-    /**
-     * 修正申請を保存する（存在すれば更新、なければ新規作成）
-     */
     public function update(AttendanceCorrectionRequest $request, $id)
     {
         $user = Auth::user();
 
-        // 対象の元レコードが存在するか確認
+        // 対象の勤怠レコードを取得
         $attendanceRecord = AttendanceRecord::where('user_id', $user->id)->findOrFail($id);
+        $recordDate = $attendanceRecord->date;
 
-        $this->authorize('request', $attendanceRecord);
+        // 出退勤日時の整形
+        $newClockIn = $request->input('new_clock_in');
+        $newClockInDateTime = $newClockIn ? "{$recordDate} {$newClockIn}:00" : null;
 
-        // データの整合性を保つためDBトランザクションを使用
-        DB::transaction(function () use ($request, $attendanceRecord) {
+        $newClockOut = $request->input('new_clock_out');
+        $newClockOutDateTime = $newClockOut ? "{$recordDate} {$newClockOut}:00" : null;
+
+        // トランザクション内で安全に一括保存
+        DB::transaction(function () use ($request, $attendanceRecord, $recordDate, $newClockInDateTime, $newClockOutDateTime) {
             
-            // 1. 修正申請テーブルを更新または作成（丸ごと置き換え）
-            $correction = AttendanceCorrection::updateOrCreate(
-                [
-                    'attendance_record_id' => $attendanceRecord->id,
-                ],
-                [
-                    'new_clock_in' => $request->input('new_clock_in'),
-                    'new_clock_out' => $request->input('new_clock_out'),
-                    'comment' => $request->input('comment'),
-                ]
-            );
+            // 1. 新しい修正申請（親）のレコードを作成
+            $correction = AttendanceCorrection::create([
+                'attendance_record_id' => $attendanceRecord->id,
+                'new_clock_in' => $newClockInDateTime,
+                'new_clock_out' => $newClockOutDateTime,
+                'comment' => $request->input('comment'),
+                'approval_status' => '承認待ち',
+            ]);
 
-            // 2. 既存の紐づく修正用休憩データを一旦全削除して、新しく登録し直す
-            $correction->attendanceCorrectionBreaktimes()->delete();
-
+            // 2. 複数の休憩データを取得してループで保存
             $breakIns = $request->input('new_break_in', []);
             $breakOuts = $request->input('new_break_out', []);
 
             foreach ($breakIns as $index => $breakIn) {
                 $breakOut = $breakOuts[$index] ?? null;
-                // すべて NOT NULL で入力される前提：両方揃っている場合のみ作成
-                if (!empty($breakIn) && !empty($breakOut)) {
+                
+                if (! empty($breakIn) && ! empty($breakOut)) {
                     AttendanceCorrectionBreaktime::create([
                         'attendance_correction_id' => $correction->id,
-                        'new_break_in' => $breakIn,
-                        'new_break_out' => $breakOut,
+                        'new_break_in' => "{$recordDate} {$breakIn}:00",
+                        'new_break_out' => "{$recordDate} {$breakOut}:00",
                     ]);
                 }
             }
         });
 
-        return redirect()->route('user.user-attendance.detail')->with('success', '勤怠の修正申請を送信しました。');
+        // 完了後に詳細画面へリダイレクト
+        return redirect()->route('attendance.show', ['id' => $id])->with('success', '勤怠の修正申請を送信しました。');
     }
 }

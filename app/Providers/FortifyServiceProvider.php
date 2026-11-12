@@ -35,18 +35,18 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
         Fortify::redirectUserForTwoFactorAuthenticationUsing(RedirectIfTwoFactorAuthenticatable::class);
-        
+
         Fortify::loginView(function () {
             return view('admin.admin-login');
-            });
-        
+        });
+
         Fortify::loginView(function () {
             return view('user.user-login');
-            });
-        
+        });
+
         Fortify::registerView(function () {
             return view('user.register');
-            });
+        });
 
         RateLimiter::for('login', function (Request $request) {
             $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
@@ -59,9 +59,11 @@ class FortifyServiceProvider extends ServiceProvider
         });
 
         // ログアウトしたあとの行き先をここで明示的に指定する
-        $this->app->singleton(LogoutResponse::class, function (){
-            return new class implements LogoutResponse{
-                public function toResponse($request){
+        $this->app->singleton(LogoutResponse::class, function () {
+            return new class implements LogoutResponse
+            {
+                public function toResponse($request)
+                {
                     // ログアウト後に飛ばしたいURLを指定
                     return redirect('/login');
                 }

@@ -2,12 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\AttendanceRecord;
 use App\Models\BreakTime;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AttendanceTest extends TestCase
@@ -18,7 +17,7 @@ class AttendanceTest extends TestCase
      */
 
     /** @test */
-    public function 勤怠打刻画面に現在の日時情報がUIと同じ形式で表示されている()
+    public function 勤怠打刻画面に現在の日時情報が_u_iと同じ形式で表示されている()
     {
         // 1. 一般ユーザーを作成してログインする
         $user = User::factory()->create();
@@ -45,7 +44,7 @@ class AttendanceTest extends TestCase
 
         // 3. 画面に表示されているステータスを確認する
         $response->assertStatus(200);
-        $response->assertSee('勤務外'); 
+        $response->assertSee('勤務外');
     }
 
     /** @test */
@@ -65,7 +64,7 @@ class AttendanceTest extends TestCase
 
         // 3. 画面に表示されているステータスを確認する
         $response->assertStatus(200);
-        $response->assertSee('出勤中'); 
+        $response->assertSee('出勤中');
     }
 
     /** @test */
@@ -90,7 +89,7 @@ class AttendanceTest extends TestCase
 
         // 3. 画面に表示されているステータスを確認する
         $response->assertStatus(200);
-        $response->assertSee('休憩中'); 
+        $response->assertSee('休憩中');
     }
 
     /** @test */
@@ -110,7 +109,7 @@ class AttendanceTest extends TestCase
 
         // 3. 画面に表示されているステータスを確認する
         $response->assertStatus(200);
-        $response->assertSee('退勤済'); 
+        $response->assertSee('退勤済');
     }
 
     /** @test */
@@ -161,7 +160,7 @@ class AttendanceTest extends TestCase
         // 2. 勤務ボタン（出勤ボタン）が表示されないことを確認する
         $response = $this->actingAs($user)->get('/attendance');
         $response->assertStatus(200);
-        
+
         // 「出勤」の文言（ボタン）が表示されていないことを確認
         $response->assertDontSee('出勤');
     }
@@ -187,7 +186,7 @@ class AttendanceTest extends TestCase
         $response = $this->actingAs($user)->get('/attendance/list');
 
         $response->assertStatus(200);
-        
+
         // 一覧画面に日付が表示されていることを確認
         $response->assertSee(now()->format('Y/m/d')); // ※実際の表示形式（Y/m/d など）に合わせて調整してください
 
@@ -245,7 +244,7 @@ class AttendanceTest extends TestCase
 
         // 2. 休憩入と休憩戻の処理を行う（1回目の休憩サイクル完了）
         $this->actingAs($user)->post('/attendance', ['action' => 'break_in']);
-        
+
         // 休憩中のレコードを取得して break_out を記録（または休憩戻処理）
         $breakTime = BreakTime::where('attendance_record_id', $attendance->id)->latest()->first();
         $breakTime->update(['break_out' => '12:30:00']);
@@ -299,7 +298,7 @@ class AttendanceTest extends TestCase
         // 2. 休憩入と休憩戻の処理を行い、再度休憩入の処理を行う
         $this->actingAs($user)->post('/attendance', ['action' => 'break_in']);
         $this->actingAs($user)->post('/attendance', ['action' => 'break_out']);
-        
+
         // 2回目の休憩入
         $this->actingAs($user)->post('/attendance', ['action' => 'break_in']);
 
@@ -315,8 +314,8 @@ class AttendanceTest extends TestCase
         // 1. ステータスが勤務中のユーザーにログインする
         $user = User::factory()->create();
         $attendance = AttendanceRecord::create([
-            'user_id'  => $user->id,
-            'date'     => now()->toDateString(),
+            'user_id' => $user->id,
+            'date' => now()->toDateString(),
             'clock_in' => '09:00:00',
             'clock_out' => null,
         ]);
@@ -329,7 +328,7 @@ class AttendanceTest extends TestCase
         $response = $this->actingAs($user)->get('/attendance/list');
 
         $response->assertStatus(200);
-        
+
         // ビューの表示形式（Y/m/d）に合わせて日付文字列に変換して確認する
         $formattedDate = Carbon::parse($attendance->date)->format('Y/m/d');
         $response->assertSee($formattedDate);
@@ -386,7 +385,7 @@ class AttendanceTest extends TestCase
         $response = $this->actingAs($user)->get('/attendance/list');
 
         $response->assertStatus(200);
-        
+
         // 一覧画面に日付と退勤時刻が表示されていることを確認
         $response->assertSee(now()->format('Y/m'));
         $response->assertSee($clockOut);

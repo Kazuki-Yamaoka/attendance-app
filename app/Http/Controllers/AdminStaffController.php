@@ -2,15 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use App\Models\User;
 use App\Models\AttendanceRecord;
-use Illuminate\Http\Request;
-use Illuminate\Support\Fluent; 
+use App\Models\User;
 use Carbon\Carbon;
-use Symfony\Component\HttpFoundation\StreamedResponse;
-use Illuminate\Support\Facades\Gate;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Fluent;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminStaffController extends Controller
 {
@@ -38,7 +37,7 @@ class AdminStaffController extends Controller
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
             abort(403, '管理者権限がありません。');
         }
-        
+
         // 1. 対象のユーザーを取得
         $user = User::findOrFail($id);
 
@@ -116,16 +115,16 @@ class AdminStaffController extends Controller
             ->get()
             ->keyBy('date');
 
-        $csvFileName = 'attendance_' . $user->id . '_' . $yearMonth . '.csv';
+        $csvFileName = 'attendance_'.$user->name.'_'.$yearMonth.'.csv';
 
-        $callback = function () use ($startDate, $endDate, $attendanceRecords, $user) {
+        $callback = function () use ($startDate, $endDate, $attendanceRecords) {
             $file = fopen('php://output', 'w');
 
             // ★【重要】Excelで文字化けしないようにUTF-8のBOM（\xEF\xBB\xBF）を最初に出力する
             fwrite($file, "\xEF\xBB\xBF");
 
             // 1行目（ヘッダー）
-            fputcsv($file, ['日付', '名前', '出勤', '退勤', '休憩', '合計']);
+            fputcsv($file, ['日付', '出勤', '退勤', '休憩', '合計']);
 
             $currentDate = $startDate->copy();
             while ($currentDate <= $endDate) {
@@ -140,8 +139,7 @@ class AdminStaffController extends Controller
                 $formattedTotalTime = $metrics['total_time'] ? Carbon::parse($metrics['total_time'])->format('G:i') : '';
 
                 fputcsv($file, [
-                    $currentDate->format('Y/m/d'),
-                    $user->name,
+                    "\t".$currentDate->format('Y/m/d'),
                     $record && $record->clock_in ? Carbon::parse($record->clock_in)->format('H:i') : '',
                     $record && $record->clock_out ? Carbon::parse($record->clock_out)->format('H:i') : '',
                     $formattedBreakTime,
@@ -156,7 +154,7 @@ class AdminStaffController extends Controller
 
         return new StreamedResponse($callback, 200, [
             'Content-Type' => 'text/csv; charset=UTF-8',
-            'Content-Disposition' => 'attachment; filename="' . $csvFileName . '"',
+            'Content-Disposition' => 'attachment; filename="'.$csvFileName.'"',
         ]);
     }
 
@@ -165,7 +163,7 @@ class AdminStaffController extends Controller
      */
     private function calculateAttendanceMetrics($record)
     {
-        if (!$record || !$record->clock_in || !$record->clock_out) {
+        if (! $record || ! $record->clock_in || ! $record->clock_out) {
             return [
                 'total_break_time' => null,
                 'total_time' => null,

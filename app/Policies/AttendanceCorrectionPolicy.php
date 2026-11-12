@@ -4,17 +4,16 @@ namespace App\Policies;
 
 use App\Models\AttendanceCorrection;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class AttendanceCorrectionPolicy
 {
-/**
+    /**
      * 一般ユーザー用: 自分の修正申請一覧の閲覧権限
      */
     public function viewAny(User $user)
     {
         // ログインしていればOK（コントローラー側で自分のデータに絞り込む）
-        return true; 
+        return true;
     }
 
     /**

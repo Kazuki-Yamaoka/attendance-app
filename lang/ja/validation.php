@@ -13,13 +13,13 @@ return [
     |
     */
 
-    'accepted'             => ':attribute を承認してください。',
-    'active_url'           => ':attribute は、有効なURLではありません。',
-    'after'                => ':attribute は :date より後の日付を指定してください。',
+    'accepted' => ':attribute を承認してください。',
+    'active_url' => ':attribute は、有効なURLではありません。',
+    'after' => ':attribute は :date より後の日付を指定してください。',
     // ... 必要に応じて必要な分だけ、または全体を日本語に書き換える ...
-    'required'             => ':attribute は必須です。',
-    'email'                => ':attribute の形式が正しくありません。',
-    'min'                  => [
+    'required' => ':attribute は必須です。',
+    'email' => ':attribute の形式が正しくありません。',
+    'min' => [
         'string' => ':attribute は :min 文字以上で入力してください。',
     ],
 

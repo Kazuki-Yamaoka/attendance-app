@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use App\Models\AttendanceCorrection;
-use App\Models\BreakTime;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Model;
 
 class AttendanceRecord extends Model
 {
@@ -33,7 +30,7 @@ class AttendanceRecord extends Model
         // 内部で既存の breakTimes() をそのまま返す
         return $this->breakTimes();
     }
-    
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

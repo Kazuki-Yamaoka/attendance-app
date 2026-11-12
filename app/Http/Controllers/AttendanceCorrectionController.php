@@ -2,14 +2,11 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\AttendanceCorrection;
 use App\Models\AttendanceRecord;
 use App\Models\BreakTime;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class AttendanceCorrectionController extends Controller
@@ -56,8 +53,8 @@ class AttendanceCorrectionController extends Controller
 
                 return [
                     // ★【超重要】詳細画面が「勤怠レコードのID」を求めているため、ここを勤怠IDにする！
-                    'id' => $attendance ? $attendance->id : $correction->id, 
-                    
+                    'id' => $attendance ? $attendance->id : $correction->id,
+
                     'approval_status' => $correction->approval_status,
                     'date' => $targetDate, // 勤怠テーブルの正確な日付
                     'comment' => $correction->comment,
@@ -79,8 +76,8 @@ class AttendanceCorrectionController extends Controller
     {
         // 修正申請データに紐づく勤怠レコード、ユーザー、休憩修正データを一緒に取得
         $application = AttendanceCorrection::with([
-            'attendanceRecord.user', 
-            'proposalBreaks' // モデル側で定義したリレーション名
+            'attendanceRecord.user',
+            'proposalBreaks', // モデル側で定義したリレーション名
         ])->findOrFail($id);
 
         // 1. 日付（new_date）を Carbon インスタンスとして動的にセット
@@ -131,7 +128,7 @@ class AttendanceCorrectionController extends Controller
 
             // 1. 元の勤怠レコードを上書き更新
             $attendanceRecord->update([
-                'clock_in'  => $application->new_clock_in,
+                'clock_in' => $application->new_clock_in,
                 'clock_out' => $application->new_clock_out,
             ]);
 
@@ -141,8 +138,8 @@ class AttendanceCorrectionController extends Controller
             foreach ($application->proposalBreaks as $proposalBreak) {
                 BreakTime::create([
                     'attendance_record_id' => $attendanceRecord->id,
-                    'break_in'             => $proposalBreak->new_break_in,
-                    'break_out'            => $proposalBreak->new_break_out,
+                    'break_in' => $proposalBreak->new_break_in,
+                    'break_out' => $proposalBreak->new_break_out,
                 ]);
             }
 
@@ -152,6 +149,6 @@ class AttendanceCorrectionController extends Controller
             ]);
         });
 
-        return redirect()->route('admin.attendance.index')->with('success', '修正申請を承認しました。');
+        return redirect()->route('application.show')->with('success', '修正申請を承認しました。');
     }
 }

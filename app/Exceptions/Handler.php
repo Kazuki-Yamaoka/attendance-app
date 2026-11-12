@@ -2,10 +2,9 @@
 
 namespace App\Exceptions;
 
-use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
-use Throwable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -31,7 +30,7 @@ class Handler extends ExceptionHandler
             // api/* パス（またはexpectsJson）のときのみJSONで返す
             if ($request->is('api/*')) {
                 return response()->json([
-                    'error' => '勤怠情報が見つかりませんでした。'
+                    'error' => '勤怠情報が見つかりませんでした。',
                 ], 404);
             }
         });
@@ -40,7 +39,7 @@ class Handler extends ExceptionHandler
             // api/* パスのときのみJSONで返す
             if ($request->is('api/*')) {
                 return response()->json([
-                    'error' => 'この操作を実行する権限がありません。'
+                    'error' => 'この操作を実行する権限がありません。',
                 ], 403);
             }
         });

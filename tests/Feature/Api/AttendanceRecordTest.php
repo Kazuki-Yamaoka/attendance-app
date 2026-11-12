@@ -6,7 +6,6 @@ use App\Models\AttendanceRecord;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Sequence;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -26,7 +25,7 @@ class AttendanceRecordTest extends TestCase
     {
         // 1. シーディングで勤怠データを作成（日付が被らないように sequence を使用）
         $user = User::factory()->create();
-        
+
         AttendanceRecord::factory()
             ->count(3)
             ->state(new Sequence(
@@ -50,8 +49,8 @@ class AttendanceRecordTest extends TestCase
                     'current_page',
                     'last_page',
                     'per_page',
-                    'total'
-                ]
+                    'total',
+                ],
             ]);
     }
 
@@ -78,7 +77,7 @@ class AttendanceRecordTest extends TestCase
                     'date',
                     'user',
                     'breaks',
-                ]
+                ],
             ]);
     }
 
@@ -97,7 +96,7 @@ class AttendanceRecordTest extends TestCase
         // HTTP 404 が返り、レスポンスが { "error": "勤怠情報が見つかりませんでした。" }
         $response->assertStatus(404)
             ->assertJson([
-                'error' => '勤怠情報が見つかりませんでした。'
+                'error' => '勤怠情報が見つかりませんでした。',
             ]);
     }
 
@@ -179,7 +178,7 @@ class AttendanceRecordTest extends TestCase
         // 存在しない ID に対しては HTTP 404 を返す
         $nonExistentResponse->assertStatus(404)
             ->assertJson([
-                'error' => '勤怠情報が見つかりませんでした。'
+                'error' => '勤怠情報が見つかりませんでした。',
             ]);
     }
 
@@ -210,7 +209,7 @@ class AttendanceRecordTest extends TestCase
         // 存在しない ID に対しては HTTP 404 を返す
         $nonExistentResponse->assertStatus(404)
             ->assertJson([
-                'error' => '勤怠情報が見つかりませんでした。'
+                'error' => '勤怠情報が見つかりませんでした。',
             ]);
     }
 
@@ -233,7 +232,7 @@ class AttendanceRecordTest extends TestCase
             ->assertJson(['message' => 'Unauthenticated.']);
 
         $this->putJson("/api/v1/attendance-records/{$record->id}", [
-            'date' => '2026-06-01'
+            'date' => '2026-06-01',
         ])
             ->assertStatus(401)
             ->assertJson(['message' => 'Unauthenticated.']);

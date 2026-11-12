@@ -2,20 +2,20 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
 use App\Models\AttendanceRecord;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Foundation\Testing\WithFaker;
 use Tests\TestCase;
 
 class AdminStaffTest extends TestCase
 {
     use RefreshDatabase;
+
     /**
      * A basic feature test example.
      */
-/**
+    /**
      * 管理者ユーザーが全一般ユーザーの「氏名」「メールアドレス」を確認できる
      * 1. 管理者でログインする
      * 2. スタッフ一覧ページを開く
@@ -78,7 +78,7 @@ class AdminStaffTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         // 2. 選択したユーザーの勤怠一覧ページを開く
-        $response = $this->get('/admin/attendance/staff/' . $staff->id);
+        $response = $this->get('/admin/attendance/staff/'.$staff->id);
 
         $response->assertStatus(200);
         $response->assertSee($today->format('m月d日'));
@@ -115,7 +115,7 @@ class AdminStaffTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         // 2. 勤怠一覧ページを開く（3. 「前月」ボタンを押す動作としてパラメータを付与）
-        $response = $this->get('/admin/attendance/staff/' . $staff->id . '?date=' . $previousMonth->format('Y-m'));
+        $response = $this->get('/admin/attendance/staff/'.$staff->id.'?date='.$previousMonth->format('Y-m'));
 
         $response->assertStatus(200);
         $response->assertSee($previousMonth->format('Y/m'));
@@ -152,7 +152,7 @@ class AdminStaffTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         // 2. 勤怠一覧ページを開く（3. 「翌月」ボタンを押す動作としてパラメータを付与）
-        $response = $this->get('/admin/attendance/staff/' . $staff->id . '?date=' . $nextMonth->format('Y-m'));
+        $response = $this->get('/admin/attendance/staff/'.$staff->id.'?date='.$nextMonth->format('Y-m'));
 
         $response->assertStatus(200);
         $response->assertSee($nextMonth->format('Y/m'));
@@ -187,11 +187,11 @@ class AdminStaffTest extends TestCase
         $this->actingAs($admin, 'admin');
 
         // 2. 勤怠一覧ページを開く
-        $response = $this->get('/admin/attendance/staff/' . $staff->id);
+        $response = $this->get('/admin/attendance/staff/'.$staff->id);
         $response->assertStatus(200);
 
         // 3. 「詳細」ボタンを押下する（詳細画面へ遷移）
-        $detailResponse = $this->get('/admin/attendance/' . $attendance->id);
+        $detailResponse = $this->get('/admin/attendance/'.$attendance->id);
         $detailResponse->assertStatus(200);
         $detailResponse->assertSee('09:00');
         $detailResponse->assertSee('18:00');
