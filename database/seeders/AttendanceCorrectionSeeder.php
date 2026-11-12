@@ -8,7 +8,7 @@ use Illuminate\Database\Seeder;
 
 class AttendanceCorrectionSeeder extends Seeder
 {
-/**
+    /**
      * Run the database seeds.
      */
     public function run(): void
@@ -47,7 +47,7 @@ class AttendanceCorrectionSeeder extends Seeder
                 [
                     'new_clock_in' => $newClockIn,
                     'new_clock_out' => $newClockOut,
-                    'comment' => '勤務時間の修正をお願いいたします。',
+                    'comment' => '遅延のため',
                     'approval_status' => $status,
                 ]
             );

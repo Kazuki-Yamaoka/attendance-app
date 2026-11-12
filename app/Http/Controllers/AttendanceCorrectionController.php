@@ -121,7 +121,7 @@ class AttendanceCorrectionController extends Controller
             $application = AttendanceCorrection::with('proposalBreaks')->findOrFail($attendance_correct_request_id);
             $attendanceRecord = AttendanceRecord::findOrFail($application->attendance_record_id);
 
-            // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+            // 管理者権限のチェック
             if (! Gate::forUser(Auth::guard('admin')->user())->allows('approve', $application)) {
                 abort(403, '管理者権限がありません。');
             }
@@ -149,6 +149,9 @@ class AttendanceCorrectionController extends Controller
             ]);
         });
 
-        return redirect()->route('application.show')->with('success', '修正申請を承認しました。');
+        // 承認対象の申請ID（または勤怠ID）をリダイレクト先に正しく渡す
+        // ※ ルートの定義に合わせて ['id' => $attendance_correct_request_id] または対象のパラメータに変更してください
+        return redirect()->route('application.show', ['attendance_correct_request_id' => $attendance_correct_request_id])
+            ->with('success', '修正申請を承認しました。');
     }
 }

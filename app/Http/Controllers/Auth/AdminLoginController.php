@@ -31,7 +31,7 @@ class AdminLoginController extends Controller
             //  dd('ここを通った：メールかパスワードが違います'); // ★確認1
 
             throw ValidationException::withMessages([
-                'email' => ['ログイン情報が登録されていません。'],
+                'email' => ['ログイン情報が登録されていません'],
             ]);
         }
 
@@ -46,7 +46,7 @@ class AdminLoginController extends Controller
             $request->session()->regenerateToken();
 
             throw ValidationException::withMessages([
-                'email' => ['管理者権限がありません。'],
+                'email' => ['管理者権限がありません'],
             ]);
         }
 

@@ -327,7 +327,7 @@ class AttendanceController extends Controller
 
         // トランザクション内で安全に一括保存
         DB::transaction(function () use ($request, $attendanceRecord, $recordDate, $newClockInDateTime, $newClockOutDateTime) {
-            
+
             // 1. 新しい修正申請（親）のレコードを作成
             $correction = AttendanceCorrection::create([
                 'attendance_record_id' => $attendanceRecord->id,
@@ -343,7 +343,7 @@ class AttendanceController extends Controller
 
             foreach ($breakIns as $index => $breakIn) {
                 $breakOut = $breakOuts[$index] ?? null;
-                
+
                 if (! empty($breakIn) && ! empty($breakOut)) {
                     AttendanceCorrectionBreaktime::create([
                         'attendance_correction_id' => $correction->id,
