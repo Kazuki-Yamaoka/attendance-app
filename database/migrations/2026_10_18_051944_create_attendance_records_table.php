@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('date');
             $table->datetime('clock_in');
             $table->datetime('clock_out')->nullable();
+            $table->string('comment')->nullable();
             $table->timestamps();
 
             // 複合ユニークキー

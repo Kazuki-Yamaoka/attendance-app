@@ -10,13 +10,21 @@ class BreakTime extends Model
 {
     use HasFactory;
 
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'attendance_record_id',
         'break_in',
         'break_out',
     ];
 
-    public function AttendanceRecord(): BelongsTo
+    /**
+     * 休憩時間が所属する勤怠レコードとのリレーション定義（多対1）
+     */
+    public function attendanceRecord(): BelongsTo
     {
         return $this->belongsTo(AttendanceRecord::class);
     }

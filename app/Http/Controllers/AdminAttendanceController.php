@@ -3,19 +3,26 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AttendanceCorrectionRequest;
+use App\Models\AttendanceCorrection;
 use App\Models\AttendanceRecord;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class AdminAttendanceController extends Controller
 {
     /**
-     * 管理者用 勤怠一覧画面（日ごと）
+     * 管理者用 勤怠一覧画面（日ごと）を表示する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return View 勤怠一覧画面のビューインスタンス
      */
-    public function index(Request $request)
+    public function index(Request $request): View
     {
         // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
@@ -59,8 +66,11 @@ class AdminAttendanceController extends Controller
 
     /**
      * 休憩時間の合計と総勤務時間を計算するプライベートメソッド
+     *
+     * @param  AttendanceRecord|null  $attendance  判定対象の勤怠レコード
+     * @return array{total_break_time: ?string, total_time: ?string} 休憩時間と総勤務時間の文字列表現配列
      */
-    private function calculateAttendanceMetrics($attendance)
+    private function calculateAttendanceMetrics(?AttendanceRecord $attendance): array
     {
         if (! $attendance || ! $attendance->clock_in || ! $attendance->clock_out) {
             return [
@@ -104,9 +114,12 @@ class AdminAttendanceController extends Controller
     }
 
     /**
-     * 1. 管理者用 勤怠詳細画面を表示 (GET: /attendance/{id})
+     * 管理者用 勤怠詳細画面を表示する (GET: /attendance/{id})
+     *
+     * @param  int|string  $id  勤怠レコードID
+     * @return View 勤怠詳細画面のビューインスタンス
      */
-    public function show($id)
+    public function show(int|string $id): View
     {
         // 勤怠モデルの変数を $attendance に統一
         $attendance = AttendanceRecord::findOrFail($id);
@@ -140,55 +153,102 @@ class AdminAttendanceController extends Controller
     }
 
     /**
-     * 管理者用 修正処理 (POST: admin/attendance/{id} など)
+     * 管理者による勤怠情報の修正・更新処理を実行する
+     *
+     * @param  AttendanceCorrectionRequest  $request  バリデーション済みリクエスト
+     * @param  int|string  $id  勤怠レコードID
+     * @return RedirectResponse 完了後のリダイレクトレスポンス
      */
-    public function update(AttendanceCorrectionRequest $request, $id)
+    public function update(AttendanceCorrectionRequest $request, int|string $id): RedirectResponse
     {
-        // 修正対象の勤怠モデルを取得
         $attendance = AttendanceRecord::findOrFail($id);
 
-        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
+        // 管理者権限の認可チェック
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('modify', $attendance)) {
             abort(403, '管理者権限がありません。');
         }
 
-        // 基準となる日付文字列 (例: '2026-05-10')
         $dateStr = Carbon::parse($attendance->date)->format('Y-m-d');
 
-        // ビューから送られてくる 'new_clock_in' / 'new_clock_out' を取得し、DB用の日時形式に変換
+        // 管理者が入力した新しい値
         $clockIn = $request->input('new_clock_in') ? "{$dateStr} {$request->input('new_clock_in')}:00" : null;
         $clockOut = $request->input('new_clock_out') ? "{$dateStr} {$request->input('new_clock_out')}:00" : null;
+        $comment = $request->input('comment');
 
-        // 1. 勤怠テーブル（attendance_records）の出勤・退勤・備考を直接更新
-        $attendance->update([
-            'clock_in' => $clockIn,
-            'clock_out' => $clockOut,
-            'comment' => $request->input('comment'),
-        ]);
-
-        // 2. 休憩時間の更新（既存をリセットして再登録）
-        // ビューからは 'new_break_in' と 'new_break_out' という名前で配列で送られてくる
         $breakIns = $request->input('new_break_in', []);
         $breakOuts = $request->input('new_break_out', []);
 
-        $attendance->breakTimes()->delete();
-
-        foreach ($breakIns as $index => $breakIn) {
-            $breakOut = $breakOuts[$index] ?? null;
-
-            // 開始と終了の両方が入力されている場合のみ、日付と結合して保存
-            if (! empty($breakIn) && ! empty($breakOut)) {
-                $formattedBreakIn = "{$dateStr} {$breakIn}:00";
-                $formattedBreakOut = "{$dateStr} {$breakOut}:00";
-
-                $attendance->breakTimes()->create([
-                    'break_in' => $formattedBreakIn,
-                    'break_out' => $formattedBreakOut,
-                ]);
-            }
+        // 変更がない場合のガード（連打防止）
+        if ($attendance->clock_in == $clockIn && $attendance->clock_out == $clockOut) {
+            return redirect()->to('admin/attendance/'.$id)->with('info', '変更された内容はありません。');
         }
 
-        // 更新後は適切な詳細画面へリダイレクト
-        return redirect()->to('admin/attendance/'.$id)->with('success', '勤怠情報を修正しました。');
+        DB::transaction(function () use ($attendance, $dateStr, $clockIn, $clockOut, $comment, $breakIns, $breakOuts) {
+
+            // 1. 既に「承認待ち」の申請データがあるか探す
+            $existingCorrection = AttendanceCorrection::where('attendance_record_id', $attendance->id)
+                ->where('approval_status', '承認待ち')
+                ->first();
+
+            if ($existingCorrection) {
+                // A. 既存の承認待ち申請がある場合：
+                // ステータスを「承認済み」にしつつ、管理者が入力した最新の修正値に更新する
+                $existingCorrection->update([
+                    'new_clock_in' => $clockIn,
+                    'new_clock_out' => $clockOut,
+                    'comment' => $comment,
+                    'approval_status' => '承認済み',
+                ]);
+                $correction = $existingCorrection;
+            } else {
+                // B. 承認待ち申請がない場合：
+                // 新規に「承認済み」の履歴レコードを作成する
+                $correction = AttendanceCorrection::create([
+                    'attendance_record_id' => $attendance->id,
+                    'new_clock_in' => $clockIn,
+                    'new_clock_out' => $clockOut,
+                    'comment' => $comment,
+                    'approval_status' => '承認済み',
+                ]);
+            }
+
+            // 2. 休憩の修正履歴テーブル側も同様に更新（または再登録）
+            if (method_exists($correction, 'breakTimes')) {
+                $correction->breakTimes()->delete();
+                foreach ($breakIns as $index => $breakIn) {
+                    $breakOut = $breakOuts[$index] ?? null;
+                    if (! empty($breakIn) && ! empty($breakOut)) {
+                        $correction->breakTimes()->create([
+                            'new_break_in' => "{$dateStr} {$breakIn}:00",
+                            'new_break_out' => "{$dateStr} {$breakOut}:00",
+                        ]);
+                    }
+                }
+            }
+
+            // 3. 大元の勤怠テーブル（attendance_records）を管理者の入力値で更新
+            $attendance->update([
+                'clock_in' => $clockIn,
+                'clock_out' => $clockOut,
+                'comment' => $comment, // 備考も大元に保存
+            ]);
+
+            // 4. 大元の休憩時間テーブル（break_times）を更新
+            $attendance->breakTimes()->delete();
+            foreach ($breakIns as $index => $breakIn) {
+                $breakOut = $breakOuts[$index] ?? null;
+                if (! empty($breakIn) && ! empty($breakOut)) {
+                    $attendance->breakTimes()->create([
+                        'break_in' => "{$dateStr} {$breakIn}:00",
+                        'break_out' => "{$dateStr} {$breakOut}:00",
+                    ]);
+                }
+            }
+        });
+
+        // 修正対象の勤怠データから user_id を取得してリダイレクトに組み込む
+        $userId = $attendance->user_id;
+
+        return redirect()->to('admin/attendance/staff/'.$userId)->with('success', '勤怠情報を修正しました。');
     }
 }

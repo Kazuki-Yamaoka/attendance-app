@@ -9,7 +9,9 @@ use Illuminate\Validation\Rule;
 class UpdateAttendanceRecordRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * このリクエストを行う権限があるかどうかを判定する
+     *
+     * @return bool 権限を許可する場合はtrue、それ以外はfalse
      */
     public function authorize(): bool
     {
@@ -17,9 +19,9 @@ class UpdateAttendanceRecordRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * リクエストに適用されるバリデーションルールを取得する
      *
-     * @return array<string, ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string> バリデーションルールの配列
      */
     public function rules(): array
     {
@@ -64,9 +66,9 @@ class UpdateAttendanceRecordRequest extends FormRequest
     }
 
     /**
-     * Get the error messages for the defined validation rules.
+     * バリデーションエラー時のカスタムメッセージを取得する
      *
-     * @return array<string, string>
+     * @return array<string, string> カスタムエラーメッセージの配列
      */
     public function messages(): array
     {

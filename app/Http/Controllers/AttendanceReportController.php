@@ -21,6 +21,9 @@ class AttendanceReportController extends Controller
 
     /**
      * 一般ユーザー向け勤怠統計レポート画面を表示する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return View レポート画面のビューインスタンス
      */
     public function index(Request $request): View
     {
@@ -48,10 +51,10 @@ class AttendanceReportController extends Controller
     /**
      * 基本サマリーの計算（過去6ヶ月全体）
      *
-     * @param  Collection  $records
-     * @return array<string, int>
+     * @param  Collection<int, AttendanceRecord>  $records  勤怠レコードのコレクション
+     * @return array<string, int> 総労働時間、総残業時間、平均労働時間の配列
      */
-    private function calculateSummary($records): array
+    private function calculateSummary(Collection $records): array
     {
         $totalMinutes = 0;
         $totalOvertimeMinutes = 0;
@@ -81,10 +84,11 @@ class AttendanceReportController extends Controller
     /**
      * 月次推移の計算（過去6ヶ月分）
      *
-     * @param  Collection  $records
-     * @return array<int, array<string, mixed>>
+     * @param  Collection<int, AttendanceRecord>  $records  勤怠レコードのコレクション
+     * @param  Carbon  $now  基準となる現在日時
+     * @return array<int, array<string, mixed>> 月ごとの労働時間・残業時間の推移配列
      */
-    private function calculateMonthlyTrends($records, Carbon $now): array
+    private function calculateMonthlyTrends(Collection $records, Carbon $now): array
     {
         $monthlyTrends = [];
 
@@ -122,10 +126,11 @@ class AttendanceReportController extends Controller
     /**
      * 今月の異常検知の計算（当月のみ）
      *
-     * @param  Collection  $records
-     * @return array<string, int>
+     * @param  Collection<int, AttendanceRecord>  $records  勤怠レコードのコレクション
+     * @param  Carbon  $now  基準となる現在日時
+     * @return array<string, int> 遅刻回数、早退回数、長時間労働回数の配列
      */
-    private function calculateAnomalies($records, Carbon $now): array
+    private function calculateAnomalies(Collection $records, Carbon $now): array
     {
         $thisMonthStart = $now->copy()->startOfMonth();
         $thisMonthEnd = $now->copy()->endOfMonth();
@@ -161,6 +166,9 @@ class AttendanceReportController extends Controller
 
     /**
      * 共通: 1日あたりの実労働時間（分）を算出する
+     *
+     * @param  AttendanceRecord  $record  計算対象の勤怠レコード
+     * @return int|null 実労働時間（分）、未退勤等の場合はnull
      */
     private function calculateNetWorkMinutes(AttendanceRecord $record): ?int
     {

@@ -8,13 +8,20 @@ use App\Models\AttendanceCorrectionBreaktime;
 use App\Models\AttendanceRecord;
 use App\Models\BreakTime;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
 
 class AttendanceController extends Controller
 {
-    public function index()
+    /**
+     * 勤怠打刻・登録画面を表示する
+     *
+     * @return View 打刻画面のビューインスタンス
+     */
+    public function index(): View
     {
         $user = Auth::user(); // ログイン中のユーザー情報を取得
 
@@ -29,8 +36,13 @@ class AttendanceController extends Controller
         return view('user.attendance-register', compact('user', 'formattedDate', 'formattedTime'));
     }
 
-    // 総合窓口（振り付け役）：ボタンの合言葉を見て、対応するメソッドを呼び出す
-    public function store(Request $request)
+    /**
+     * 打刻アクションの総合窓口（振り付け役）：ボタンの合言葉を見て、対応するメソッドを呼び出す
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return RedirectResponse リダイレクトレスポンス
+     */
+    public function store(Request $request): RedirectResponse
     {
         return match ($request->input('action')) {
             'clock_in' => $this->storeClockIn($request),
@@ -43,7 +55,13 @@ class AttendanceController extends Controller
 
     // --- 各処理専用のプライベートメソッド ---
 
-    private function storeClockIn(Request $request)
+    /**
+     * 出勤打刻を保存する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return RedirectResponse リダイレクトレスポンス
+     */
+    private function storeClockIn(Request $request): RedirectResponse
     {
         AttendanceRecord::create([
             'user_id' => Auth::id(),
@@ -54,7 +72,13 @@ class AttendanceController extends Controller
         return redirect()->back();
     }
 
-    private function storeClockOut(Request $request)
+    /**
+     * 退勤打刻を保存する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return RedirectResponse リダイレクトレスポンス
+     */
+    private function storeClockOut(Request $request): RedirectResponse
     {
         // ① まだ退勤していない未完了のレコードを探す
         $record = AttendanceRecord::where('user_id', Auth::id())
@@ -75,7 +99,13 @@ class AttendanceController extends Controller
         return redirect()->back();
     }
 
-    private function storeBreakIn(Request $request)
+    /**
+     * 休憩開始打刻を保存する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return RedirectResponse リダイレクトレスポンス
+     */
+    private function storeBreakIn(Request $request): RedirectResponse
     {
         $record = AttendanceRecord::where('user_id', Auth::id())
             ->whereDate('date', Carbon::today())
@@ -91,7 +121,13 @@ class AttendanceController extends Controller
         return redirect()->back();
     }
 
-    private function storeBreakOut(Request $request)
+    /**
+     * 休憩終了打刻を保存する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return RedirectResponse リダイレクトレスポンス
+     */
+    private function storeBreakOut(Request $request): RedirectResponse
     {
         $record = AttendanceRecord::where('user_id', Auth::id())
             ->whereNull('clock_out')
@@ -118,7 +154,14 @@ class AttendanceController extends Controller
     // ==========================================
     // 1. メインの司令塔（一覧画面表示）
     // ==========================================
-    public function list(Request $request)
+
+    /**
+     * 一般ユーザー向け勤怠一覧画面を表示する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return View 勤怠一覧画面のビューインスタンス
+     */
+    public function list(Request $request): View
     {
         $this->authorize('viewAny', AttendanceRecord::class);
 
@@ -168,8 +211,12 @@ class AttendanceController extends Controller
 
     /**
      * 1日分の勤怠データをビュー用にフォーマットする
+     *
+     * @param  \DateTimeInterface  $day  判定対象の日付インスタンス
+     * @param  AttendanceRecord|null  $record  勤怠レコード、存在しない場合はnull
+     * @return array<string, mixed> フォーマット済み勤怠データの配列
      */
-    private function formatDailyRecord($day, ?AttendanceRecord $record): array
+    private function formatDailyRecord(\DateTimeInterface $day, ?AttendanceRecord $record): array
     {
         $clockIn = null;
         $clockOut = null;
@@ -197,9 +244,12 @@ class AttendanceController extends Controller
             }
         }
 
+        // $day が DateTimeInterface になっているので、Carbon::instance() でラップすると安全に format が使えます
+        $carbonDay = Carbon::instance($day);
+
         return [
             'id' => $recordId,
-            'date' => $day->format('Y/m/d'),
+            'date' => $carbonDay->format('Y/m/d'),
             'clock_in' => $clockIn,
             'clock_out' => $clockOut,
             'total_break_time' => $breakTimeFormatted,
@@ -209,8 +259,11 @@ class AttendanceController extends Controller
 
     /**
      * 休憩時間の合計（分）を計算する
+     *
+     * @param  iterable<BreakTime>  $breakTimes  休憩時間モデルのコレクションまたは配列
+     * @return int 休憩時間の合計（分）
      */
-    private function calculateTotalBreakMinutes($breakTimes): int
+    private function calculateTotalBreakMinutes(iterable $breakTimes): int
     {
         $totalMinutes = 0;
 
@@ -225,6 +278,11 @@ class AttendanceController extends Controller
 
     /**
      * 実働時間の合計（分）を計算する
+     *
+     * @param  string  $clockIn  出勤時刻
+     * @param  string  $clockOut  退勤時刻
+     * @param  int  $breakMinutes  休憩時間の合計（分）
+     * @return int 実労働時間（分）
      */
     private function calculateTotalWorkMinutes(string $clockIn, string $clockOut, int $breakMinutes): int
     {
@@ -236,6 +294,9 @@ class AttendanceController extends Controller
 
     /**
      * 分単位の数値を「H:i」形式（例: "08:30"）の文字列に変換する
+     *
+     * @param  int  $minutes  分単位の数値
+     * @return string|null 「H:i」形式の時刻文字列
      */
     private function formatMinutesToHours(int $minutes): ?string
     {
@@ -251,8 +312,11 @@ class AttendanceController extends Controller
 
     /**
      * 勤怠詳細・修正画面を表示する
+     *
+     * @param  int|string  $id  勤怠レコードID
+     * @return View 勤怠詳細画面のビューインスタンス
      */
-    public function show($id)
+    public function show(int|string $id): View
     {
         $user = Auth::user();
 
@@ -310,7 +374,14 @@ class AttendanceController extends Controller
         return view('user.user-detail', compact('user', 'data', 'attendanceRecord'));
     }
 
-    public function update(AttendanceCorrectionRequest $request, $id)
+    /**
+     * 一般ユーザーによる勤怠修正申請を登録・更新する
+     *
+     * @param  AttendanceCorrectionRequest  $request  バリデーション済みリクエスト
+     * @param  int|string  $id  勤怠レコードID
+     * @return RedirectResponse 完了後のリダイレクトレスポンス
+     */
+    public function update(AttendanceCorrectionRequest $request, int|string $id): RedirectResponse
     {
         $user = Auth::user();
 

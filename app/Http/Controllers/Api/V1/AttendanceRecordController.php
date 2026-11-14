@@ -16,11 +16,10 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 class AttendanceRecordController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     */
-
-    /**
      * 勤怠一覧取得API
+     *
+     * @param  IndexAttendanceRecordRequest  $request  バリデーション済み検索リクエスト
+     * @return AnonymousResourceCollection 勤怠レコードのJSONリソースコレクション
      */
     public function index(IndexAttendanceRecordRequest $request): AnonymousResourceCollection
     {
@@ -59,6 +58,9 @@ class AttendanceRecordController extends Controller
 
     /**
      * 勤怠詳細取得API
+     *
+     * @param  string  $id  勤怠レコードID
+     * @return AttendanceRecordResource|JsonResponse 勤怠レコードのリソース、または見つからない場合のエラーJSON
      */
     public function show(string $id): AttendanceRecordResource|JsonResponse
     {
@@ -80,6 +82,9 @@ class AttendanceRecordController extends Controller
 
     /**
      * 総勤務時間を計算 (出勤〜退勤 - 総休憩時間)
+     *
+     * @param  AttendanceRecord  $record  計算対象の勤怠レコード
+     * @return string|null 総勤務時間（HH:MM形式）、未退勤等の場合はnull
      */
     private function calculateTotalTime(AttendanceRecord $record): ?string
     {
@@ -109,7 +114,10 @@ class AttendanceRecordController extends Controller
     }
 
     /**
-     * 総休憩時間を計算
+     * 総休憩時間を計算する
+     *
+     * @param  AttendanceRecord  $record  計算対象の勤怠レコード
+     * @return string|null 総休憩時間（HH:MM形式）
      */
     private function calculateTotalBreakTime(AttendanceRecord $record): ?string
     {
@@ -132,6 +140,12 @@ class AttendanceRecordController extends Controller
         return sprintf('%02d:%02d', $hours, $minutes);
     }
 
+    /**
+     * 新規勤怠登録API
+     *
+     * @param  StoreAttendanceRecordRequest  $request  バリデーション済み登録リクエスト
+     * @return JsonResponse 作成された勤怠レコードのリソースとステータスコード201のJSONレスポンス
+     */
     public function store(StoreAttendanceRecordRequest $request): JsonResponse
     {
         $validatedData = $request->validated();
@@ -161,12 +175,17 @@ class AttendanceRecordController extends Controller
             ->setStatusCode(201);
     }
 
-    // 引数を $id から AttendanceRecord $attendanceRecord に変更する
+    /**
+     * 勤怠更新API
+     *
+     * @param  UpdateAttendanceRecordRequest  $request  バリデーション済み更新リクエスト
+     * @param  AttendanceRecord  $attendanceRecord  ルートモデル結合された勤怠レコード
+     * @return JsonResponse 更新された勤怠レコードのリソースとステータスコード200のJSONレスポンス
+     */
     public function update(UpdateAttendanceRecordRequest $request, AttendanceRecord $attendanceRecord): JsonResponse
     {
         // ルートモデル結合を使っていれば、存在しないIDの場合は自動的に
         // 404（ModelNotFoundException）がスローされます。
-        // （以前 Handler.php で api/* のときは 404 JSON を返す設定にしたはずなので、自動で意図したJSONになります）
 
         // 2. ポリシーによる認可チェック
         try {
@@ -204,7 +223,10 @@ class AttendanceRecordController extends Controller
     }
 
     /**
-     * Remove the specified resource from storage.
+     * 勤怠削除API
+     *
+     * @param  string  $id  勤怠レコードID
+     * @return JsonResponse 削除成功時はステータス204、失敗時はエラーメッセージのJSONレスポンス
      */
     public function destroy(string $id): JsonResponse
     {
