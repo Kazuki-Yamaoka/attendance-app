@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail; // 追加
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -47,17 +47,29 @@ class User extends Authenticatable implements MustVerifyEmail
         'is_admin' => 'boolean',
     ];
 
-    public function AttendanceRecords(): HasMany
+    /**
+     * ユーザーに紐づく勤怠レコードとのリレーション定義（1対多）
+     */
+    public function attendanceRecords(): HasMany
     {
         return $this->hasMany(AttendanceRecord::class);
     }
 
-    // 今日（本日の日付）の勤怠レコードを1件取得する便利メソッド
-    public function todayAttendance()
+    /**
+     * 本日の日付の勤怠レコードを1件取得する便利メソッド
+     *
+     * @return AttendanceRecord|null 本日の勤怠レコード、存在しない場合はnull
+     */
+    public function todayAttendance(): ?AttendanceRecord
     {
         return $this->attendanceRecords()->whereDate('date', today())->first();
     }
 
+    /**
+     * ユーザーの本日の勤務ステータス文字列を取得するアクセサ（またはメソッド）
+     *
+     * @return string ステータス文字列（'勤務外', '退勤済', '休憩中', '出勤中'）
+     */
     public function getAttendanceStatusAttribute(): string
     {
         // 今日の勤怠レコードを取得

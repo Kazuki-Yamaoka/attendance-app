@@ -4,13 +4,20 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdminLoginRequest; // ★自作のリクエストをインポート
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
 
 class AdminLoginController extends Controller
 {
-    public function create()
+    /**
+     * 管理者用ログイン画面を表示する（ログイン中の場合はダッシュボードへリダイレクト）
+     *
+     * @return View|RedirectResponse ログイン画面のビュー、またはダッシュボードへのリダイレクト
+     */
+    public function create(): View|RedirectResponse
     {
         // すでに管理者としてログイン中なら、そのまま管理者ダッシュボードへ飛ばす
         if (Auth::guard('admin')->check()) {
@@ -21,15 +28,20 @@ class AdminLoginController extends Controller
         return view('admin.admin-login');
     }
 
-    // 例：管理者用ログインコントローラーの store メソッドなど
-    public function store(AdminLoginRequest $request)
+    /**
+     * 管理者用のログイン認証処理を実行する
+     *
+     * @param  AdminLoginRequest  $request  バリデーション済み管理者ログインリクエスト
+     * @return RedirectResponse 認証成功後のリダイレクトレスポンス
+     *
+     * @throws ValidationException 認証失敗または管理者権限がない場合
+     */
+    public function store(AdminLoginRequest $request): RedirectResponse
     {
         $credentials = $request->only('email', 'password');
 
         // 1. まずメールとパスワードで認証を試みる
         if (! Auth::guard('admin')->attempt($credentials, $request->boolean('remember'))) {
-            //  dd('ここを通った：メールかパスワードが違います'); // ★確認1
-
             throw ValidationException::withMessages([
                 'email' => ['ログイン情報が登録されていません'],
             ]);
@@ -38,8 +50,6 @@ class AdminLoginController extends Controller
         // 2. ★認証通ったあとに「本当に管理者権限（例: is_admin == 1）があるか？」をチェック！
         $user = Auth::guard('admin')->user();
         if (! $user->is_admin) { // 実際のカラム名に合わせて変更してください
-            // dd('ここを通った：is_admin が true ではありません。現在の値は：', $user->is_admin); // ★確認2
-
             // 管理者じゃなければ強制ログアウトさせる
             Auth::guard('admin')->logout();
             $request->session()->invalidate();
@@ -52,15 +62,16 @@ class AdminLoginController extends Controller
 
         $request->session()->regenerate();
 
-        // dd('ここを通った：ログイン成功！本来ならリダイレクトします'); // ★確認3
-
         return redirect()->intended('/admin/attendance/list');
     }
 
     /**
-     * 管理者用ログアウト処理
+     * 管理者用ログアウト処理を実行する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return RedirectResponse ログアウト後の管理者ログイン画面へのリダイレクト
      */
-    public function logout(Request $request)
+    public function logout(Request $request): RedirectResponse
     {
         // 管理者ガード（'admin'）を指定してログアウト
         Auth::guard('admin')->logout();

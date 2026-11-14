@@ -3,12 +3,19 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function login(Request $request)
+    /**
+     * API経由でのユーザーログイン認証およびSanctumアクセストークンを発行する
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return JsonResponse アクセストークンを含むJSONレスポンス、または認証失敗時のエラーレスポンス
+     */
+    public function login(Request $request): JsonResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],

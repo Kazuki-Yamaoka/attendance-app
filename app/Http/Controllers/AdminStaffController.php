@@ -9,14 +9,17 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Fluent;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class AdminStaffController extends Controller
 {
     /**
-     * 管理者用 スタッフ一覧画面を表示
+     * 管理者用 スタッフ一覧画面を表示する
+     *
+     * @return View スタッフ一覧画面のビューインスタンス
      */
-    public function index()
+    public function index(): View
     {
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAny', User::class)) {
             abort(403, '管理者権限がありません。');
@@ -30,9 +33,13 @@ class AdminStaffController extends Controller
     }
 
     /**
-     * 指定スタッフの月次勤怠一覧画面を表示 (GET: /admin/attendance/staff/{id})
+     * 指定スタッフの月次勤怠一覧画面を表示する (GET: /admin/attendance/staff/{id})
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @param  int|string  $id  対象スタッフのユーザーID
+     * @return View スタッフ別月次勤怠一覧画面のビューインスタンス
      */
-    public function show(Request $request, $id)
+    public function show(Request $request, int|string $id): View
     {
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
             abort(403, '管理者権限がありません。');
@@ -94,8 +101,11 @@ class AdminStaffController extends Controller
 
     /**
      * スタッフ別月次勤怠のCSV出力機能 (POST: /export)
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return StreamedResponse CSVファイルのストリーミングレスポンス
      */
-    public function export(Request $request)
+    public function export(Request $request): StreamedResponse
     {
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceRecord::class)) {
             abort(403, '管理者権限がありません。');
@@ -160,8 +170,11 @@ class AdminStaffController extends Controller
 
     /**
      * 休憩時間の合計と総勤務時間を計算するプライベートメソッド
+     *
+     * @param  AttendanceRecord|null  $record  判定対象の勤怠レコード
+     * @return array{total_break_time: ?string, total_time: ?string} 休憩時間と総勤務時間の文字列表現配列
      */
-    private function calculateAttendanceMetrics($record)
+    private function calculateAttendanceMetrics(?AttendanceRecord $record): array
     {
         if (! $record || ! $record->clock_in || ! $record->clock_out) {
             return [

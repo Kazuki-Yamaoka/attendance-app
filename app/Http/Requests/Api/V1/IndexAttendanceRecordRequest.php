@@ -8,7 +8,9 @@ use Illuminate\Foundation\Http\FormRequest;
 class IndexAttendanceRecordRequest extends FormRequest
 {
     /**
-     * Determine if the user is authorized to make this request.
+     * このリクエストを行う権限があるかどうかを判定する
+     *
+     * @return bool 権限を許可する場合はtrue、それ以外はfalse
      */
     public function authorize(): bool
     {
@@ -27,9 +29,9 @@ class IndexAttendanceRecordRequest extends FormRequest
     }
 
     /**
-     * Get the validation rules that apply to the request.
+     * リクエストに適用されるバリデーションルールを取得する
      *
-     * @return array<string, ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string> バリデーションルールの配列
      */
     public function rules(): array
     {

@@ -6,12 +6,21 @@ use App\Models\AttendanceCorrection;
 use App\Models\AttendanceRecord;
 use App\Models\BreakTime;
 use Carbon\Carbon;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\View\View;
 
 class AttendanceCorrectionController extends Controller
 {
-    public function index()
+    /**
+     * 修正申請一覧画面を表示する（管理者および一般ユーザーの権限分岐に対応）
+     *
+     * @param  Request  $request  HTTPリクエストインスタンス
+     * @return View|RedirectResponse 一覧画面のビュー、またはログイン画面へのリダイレクト
+     */
+    public function index(Request $request): View|RedirectResponse
     {
         // 1. 管理者ガード（'admin'）でログインしているかチェック
         if (Auth::guard('admin')->check()) {
@@ -71,8 +80,11 @@ class AttendanceCorrectionController extends Controller
 
     /**
      * 修正申請詳細（承認画面）を表示する
+     *
+     * @param  int|string  $id  修正申請ID
+     * @return View 修正申請詳細画面のビュー
      */
-    public function show($id)
+    public function show(int|string $id): View
     {
         // 修正申請データに紐づく勤怠レコード、ユーザー、休憩修正データを一緒に取得
         $application = AttendanceCorrection::with([
@@ -115,7 +127,13 @@ class AttendanceCorrectionController extends Controller
         return view('admin.admin-application-detail', compact('application', 'user'));
     }
 
-    public function approve($attendance_correct_request_id)
+    /**
+     * 修正申請を承認し、大元の勤怠データを更新する
+     *
+     * @param  int|string  $attendance_correct_request_id  修正申請ID
+     * @return RedirectResponse 承認処理後のリダイレクトレスポンス
+     */
+    public function approve(int|string $attendance_correct_request_id): RedirectResponse
     {
         \DB::transaction(function () use ($attendance_correct_request_id) {
             $application = AttendanceCorrection::with('proposalBreaks')->findOrFail($attendance_correct_request_id);
@@ -150,7 +168,6 @@ class AttendanceCorrectionController extends Controller
         });
 
         // 承認対象の申請ID（または勤怠ID）をリダイレクト先に正しく渡す
-        // ※ ルートの定義に合わせて ['id' => $attendance_correct_request_id] または対象のパラメータに変更してください
         return redirect()->route('application.show', ['attendance_correct_request_id' => $attendance_correct_request_id])
             ->with('success', '修正申請を承認しました。');
     }
