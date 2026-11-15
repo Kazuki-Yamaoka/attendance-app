@@ -25,7 +25,6 @@ class AttendanceCorrectionController extends Controller
         // 1. 管理者ガード（'admin'）でログインしているかチェック
         if (Auth::guard('admin')->check()) {
 
-            // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
             if (! Gate::forUser(Auth::guard('admin')->user())->allows('viewAnyAdmin', AttendanceCorrection::class)) {
                 abort(403, '管理者権限がありません。');
             }
@@ -61,8 +60,8 @@ class AttendanceCorrectionController extends Controller
                 }
 
                 return [
-                    // ★【超重要】詳細画面が「勤怠レコードのID」を求めているため、ここを勤怠IDにする！
-                    'id' => $attendance ? $attendance->id : $correction->id,
+                    // ★ 修正申請テーブルのID（$correction->id）を確実に渡す
+                    'id' => $correction->id,
 
                     'approval_status' => $correction->approval_status,
                     'date' => $targetDate, // 勤怠テーブルの正確な日付
@@ -79,7 +78,7 @@ class AttendanceCorrectionController extends Controller
     }
 
     /**
-     * 修正申請詳細（承認画面）を表示する
+     * 修正申請詳細画面を表示する（一般ユーザー用 / 管理者用を分岐）
      *
      * @param  int|string  $id  修正申請ID
      * @return View 修正申請詳細画面のビュー
@@ -89,7 +88,7 @@ class AttendanceCorrectionController extends Controller
         // 修正申請データに紐づく勤怠レコード、ユーザー、休憩修正データを一緒に取得
         $application = AttendanceCorrection::with([
             'attendanceRecord.user',
-            'proposalBreaks', // モデル側で定義したリレーション名
+            'proposalBreaks',
         ])->findOrFail($id);
 
         // 1. 日付（new_date）を Carbon インスタンスとして動的にセット
@@ -97,11 +96,6 @@ class AttendanceCorrectionController extends Controller
             $application->new_date = Carbon::parse($application->attendanceRecord->date);
         } else {
             $application->new_date = Carbon::now();
-        }
-
-        // ⭕ Gate::guard ではなく Gate::forUser に管理者ガードのユーザーを渡す
-        if (! Gate::forUser(Auth::guard('admin')->user())->allows('view', $application)) {
-            abort(403, '管理者権限がありません。');
         }
 
         // 2. 出勤時間（new_clock_in）を "H:i" 形式に変換
@@ -115,16 +109,30 @@ class AttendanceCorrectionController extends Controller
         }
 
         // 4. 休憩修正データのプロパティ名をビューに合わせてマッピング
-        // （データベースの new_break_in / new_break_out を、ビューが求めている break_in / break_out に割り当てる）
         foreach ($application->proposalBreaks as $break) {
             $break->break_in = $break->new_break_in;
             $break->break_out = $break->new_break_out;
         }
 
-        // ビュー側で $user->name として参照するため、紐づくユーザー情報を取得して渡す
+        // ビュー側で $user->name として参照するため、紐づくユーザー情報を取得
         $user = $application->attendanceRecord->user ?? null;
 
-        return view('admin.admin-application-detail', compact('application', 'user'));
+        // --- 権限・アクセス元のガードに応じたビューの切り分け ---
+
+        // 管理者ガードでログインしており、管理者用ルートからアクセスしている場合
+        if (Auth::guard('admin')->check()) {
+            if (! Gate::forUser(Auth::guard('admin')->user())->allows('view', $application)) {
+                abort(403, '管理者権限がありません。');
+            }
+
+            return view('admin.admin-application-detail', compact('application', 'user'));
+        }
+
+        // 一般ユーザーの場合（必要に応じて認可ポリシーを追加してください）
+        // 例: 自分の申請データかどうかのチェックなど
+        // if ($user->id !== Auth::id()) { abort(403); }
+
+        return view('user.user-application-detail', compact('application', 'user'));
     }
 
     /**
@@ -144,10 +152,11 @@ class AttendanceCorrectionController extends Controller
                 abort(403, '管理者権限がありません。');
             }
 
-            // 1. 元の勤怠レコードを上書き更新
+            // 1. 元の勤怠レコードを上書き更新（コメントも含めて反映）
             $attendanceRecord->update([
                 'clock_in' => $application->new_clock_in,
                 'clock_out' => $application->new_clock_out,
+                'comment' => $application->comment, // ← ここで元の勤怠レコードにコメントを保存
             ]);
 
             // 2. 元の休憩レコードを一度すべて削除し、修正申請側の休憩で置き換える

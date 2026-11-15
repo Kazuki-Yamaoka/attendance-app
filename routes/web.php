@@ -79,11 +79,13 @@ Route::middleware('admin')->group(function () {
     Route::get('/admin/attendance/{id}', [AdminAttendanceController::class, 'show'])->name('admin.attendance.show');
     Route::post('/admin/attendance/{id}', [AdminAttendanceController::class, 'update'])->name('admin.attendance.update');
 
-    Route::get('/stamp_correction_request/approve/{attendance_correct_request_id}', [AttendanceCorrectionController::class, 'show'])->name('application.show');
     Route::post('/stamp_correction_request/approve/{attendance_correct_request_id}', [AttendanceCorrectionController::class, 'approve'])->name('application.approve');
     // ★ ここに管理者用ログアウトのルートを追加
     Route::post('/admin/logout', [AdminLoginController::class, 'logout'])->name('admin.logout');
 });
 
 // 申請一覧画面（一般・管理者共通、認証はコントローラーで設定済み）
-Route::get('/stamp_correction_request/list', [AttendanceCorrectionController::class, 'index'])->middleware('auth:web,admin')->name('application.index');
+Route::middleware('auth:web,admin')->group(function () {
+    Route::get('/stamp_correction_request/list', [AttendanceCorrectionController::class, 'index'])->name('application.index');
+    Route::get('/stamp_correction_request/approve/{attendance_correct_request_id}', [AttendanceCorrectionController::class, 'show'])->name('application.show');
+});
