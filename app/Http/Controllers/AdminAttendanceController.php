@@ -161,7 +161,7 @@ class AdminAttendanceController extends Controller
      */
     public function update(AttendanceCorrectionRequest $request, int|string $id): RedirectResponse
     {
-        $attendance = AttendanceRecord::findOrFail($id);
+        $attendance = AttendanceRecord::with('breakTimes')->findOrFail($id);
 
         // 管理者権限の認可チェック
         if (! Gate::forUser(Auth::guard('admin')->user())->allows('modify', $attendance)) {
@@ -178,21 +178,14 @@ class AdminAttendanceController extends Controller
         $breakIns = $request->input('new_break_in', []);
         $breakOuts = $request->input('new_break_out', []);
 
-        // 変更がない場合のガード（連打防止）
-        if ($attendance->clock_in == $clockIn && $attendance->clock_out == $clockOut) {
-            return redirect()->to('admin/attendance/'.$id)->with('info', '変更された内容はありません。');
-        }
-
         DB::transaction(function () use ($attendance, $dateStr, $clockIn, $clockOut, $comment, $breakIns, $breakOuts) {
 
-            // 1. 既に「承認待ち」の申請データがあるか探す
+            // 1. 修正申請（AttendanceCorrection）の作成または更新
             $existingCorrection = AttendanceCorrection::where('attendance_record_id', $attendance->id)
                 ->where('approval_status', '承認待ち')
                 ->first();
 
             if ($existingCorrection) {
-                // A. 既存の承認待ち申請がある場合：
-                // ステータスを「承認済み」にしつつ、管理者が入力した最新の修正値に更新する
                 $existingCorrection->update([
                     'new_clock_in' => $clockIn,
                     'new_clock_out' => $clockOut,
@@ -201,8 +194,6 @@ class AdminAttendanceController extends Controller
                 ]);
                 $correction = $existingCorrection;
             } else {
-                // B. 承認待ち申請がない場合：
-                // 新規に「承認済み」の履歴レコードを作成する
                 $correction = AttendanceCorrection::create([
                     'attendance_record_id' => $attendance->id,
                     'new_clock_in' => $clockIn,
@@ -212,41 +203,71 @@ class AdminAttendanceController extends Controller
                 ]);
             }
 
-            // 2. 休憩の修正履歴テーブル側も同様に更新（または再登録）
-            if (method_exists($correction, 'breakTimes')) {
-                $correction->breakTimes()->delete();
-                foreach ($breakIns as $index => $breakIn) {
-                    $breakOut = $breakOuts[$index] ?? null;
-                    if (! empty($breakIn) && ! empty($breakOut)) {
-                        $correction->breakTimes()->create([
-                            'new_break_in' => "{$dateStr} {$breakIn}:00",
-                            'new_break_out' => "{$dateStr} {$breakOut}:00",
+            // 2. 【修正休憩テーブル（proposalBreaks）】の差分同期処理
+            // 既存の修正休憩を取得しておく
+            $existingProposalBreaks = $correction->proposalBreaks()->get();
+            foreach ($breakIns as $index => $breakIn) {
+                $breakOut = $breakOuts[$index] ?? null;
+
+                if (! empty($breakIn) || ! empty($breakOut)) {
+                    $formattedIn = ! empty($breakIn) ? "{$dateStr} {$breakIn}:00" : null;
+                    $formattedOut = ! empty($breakOut) ? "{$dateStr} {$breakOut}:00" : null;
+
+                    // すでに該当インデックス（順番）にレコードが存在すれば上書き（修正）、なければ新規作成（追加）
+                    if (isset($existingProposalBreaks[$index])) {
+                        $existingProposalBreaks[$index]->update([
+                            'new_break_in' => $formattedIn,
+                            'new_break_out' => $formattedOut,
+                        ]);
+                    } else {
+                        $correction->proposalBreaks()->create([
+                            'new_break_in' => $formattedIn,
+                            'new_break_out' => $formattedOut,
                         ]);
                     }
                 }
             }
+            // フォームから送られてこなくなった（削除された）余分な既存レコードがあれば削除する
+            if ($existingProposalBreaks->count() > count($breakIns)) {
+                $correction->proposalBreaks()->skip(count($breakIns))->take($existingProposalBreaks->count() - count($breakIns))->delete();
+            }
 
-            // 3. 大元の勤怠テーブル（attendance_records）を管理者の入力値で更新
+            // 3. 【大元の勤怠テーブル（attendance_records）】を更新
             $attendance->update([
                 'clock_in' => $clockIn,
                 'clock_out' => $clockOut,
-                'comment' => $comment, // 備考も大元に保存
+                'comment' => $comment,
             ]);
 
-            // 4. 大元の休憩時間テーブル（break_times）を更新
-            $attendance->breakTimes()->delete();
+            // 4. 【大元の休憩時間テーブル（break_times）】の差分同期処理
+            $existingBreakTimes = $attendance->breakTimes()->get();
             foreach ($breakIns as $index => $breakIn) {
                 $breakOut = $breakOuts[$index] ?? null;
-                if (! empty($breakIn) && ! empty($breakOut)) {
-                    $attendance->breakTimes()->create([
-                        'break_in' => "{$dateStr} {$breakIn}:00",
-                        'break_out' => "{$dateStr} {$breakOut}:00",
-                    ]);
+
+                if (! empty($breakIn) || ! empty($breakOut)) {
+                    $formattedIn = ! empty($breakIn) ? "{$dateStr} {$breakIn}:00" : null;
+                    $formattedOut = ! empty($breakOut) ? "{$dateStr} {$breakOut}:00" : null;
+
+                    // すでに該当インデックスにレコードが存在すれば上書き、なければ新規作成
+                    if (isset($existingBreakTimes[$index])) {
+                        $existingBreakTimes[$index]->update([
+                            'break_in' => $formattedIn,
+                            'break_out' => $formattedOut,
+                        ]);
+                    } else {
+                        $attendance->breakTimes()->create([
+                            'break_in' => $formattedIn,
+                            'break_out' => $formattedOut,
+                        ]);
+                    }
                 }
+            }
+            // 削除された行があれば削除
+            if ($existingBreakTimes->count() > count($breakIns)) {
+                $attendance->breakTimes()->skip(count($breakIns))->take($existingBreakTimes->count() - count($breakIns))->delete();
             }
         });
 
-        // 修正対象の勤怠データから user_id を取得してリダイレクトに組み込む
         $userId = $attendance->user_id;
 
         return redirect()->to('admin/attendance/staff/'.$userId)->with('success', '勤怠情報を修正しました。');

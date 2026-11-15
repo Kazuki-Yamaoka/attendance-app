@@ -73,7 +73,9 @@ class AttendanceCorrectionRequest extends FormRequest
     {
         return [
             'new_clock_out.after' => '出勤時間もしくは退勤時間が不適切な値です',
+            'new_break_in.*.after' => '休憩時間が不適切な値です',
             'new_break_in.*.before' => '休憩時間が不適切な値です',
+            'new_break_out.*.after' => '休憩時間もしくは退勤時間が不適切な値です',
             'new_break_out.*.before' => '休憩時間もしくは退勤時間が不適切な値です',
             'comment.required' => '備考を記入してください',
         ];

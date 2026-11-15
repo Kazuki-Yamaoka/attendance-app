@@ -34,6 +34,7 @@ class AttendanceCorrectionSeeder extends Seeder
 
             $newClockIn = "{$dateStr} ".sprintf('%02d:%02d:00', $inHour, $inMin);
             $newClockOut = "{$dateStr} ".sprintf('%02d:%02d:00', $outHour, $outMin);
+            $comment = '遅延のため';
 
             // 4. ステータスをランダムに設定（承認待ち / 承認済み）
             $statuses = ['承認待ち', '承認済み'];
@@ -47,16 +48,17 @@ class AttendanceCorrectionSeeder extends Seeder
                 [
                     'new_clock_in' => $newClockIn,
                     'new_clock_out' => $newClockOut,
-                    'comment' => '遅延のため',
+                    'comment' => $comment,
                     'approval_status' => $status,
                 ]
             );
 
-            // 6. ★ ステータスが「承認済み」の場合は、元の勤怠テーブル（親）も修正後の値で上書きする
+            // 6. ★ ステータスが「承認済み」の場合は、元の勤怠テーブル（親）も修正後の値およびコメントで上書きする
             if ($status === '承認済み') {
                 $record->update([
                     'clock_in' => $newClockIn,
                     'clock_out' => $newClockOut,
+                    'comment' => $comment, // ← ここに comment を追加しました
                 ]);
             }
         }
